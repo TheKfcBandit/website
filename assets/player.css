@@ -1,0 +1,42 @@
+table {
+    font-size: 60%;
+    display: inline-grid;
+    background-color: #333246;
+    border-radius: 0.5rem;
+    padding: 1%;
+    font-family: source sans pro;
+    max-height: 10vh;
+    max-width: 24vh;
+    padding-right: 3%;
+    margin: 5px;
+    transform: scale(1.2);
+}
+
+td {
+    vertical-align: middle;
+}
+
+a#track {
+    font-weight: bold;
+}
+
+a:hover {
+    color: #323287;
+}
+
+.cover {
+    border-radius: 20%;
+    max-width: 5vh;
+    margin: 0.2vh;
+    margin-left: 1vh;
+    padding-top: 0.3vh;
+    position: relative;
+    right: 6%;
+}
+
+.artist,
+.date,
+.track {
+    color: white;
+    white-space: nowrap;
+}
