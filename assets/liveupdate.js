@@ -11,7 +11,7 @@ fetch(`https://api.lanyard.rest/v1/users/${discordID}`)
 
 		if (data.data.discord_user) {
 			aLink.href = `https://discord.com/users/${data.data.discord_user.id}`;
-			aImg.src = `https://cdn.discordapp.com/avatars/${data.data.discord_user.id}/${data.data.discord_user.avatar}.gif`;
+			aImg.src = `https://cdn.discordapp.com/avatars/${data.data.discord_user.id}/${data.data.discord_user.avatar}`;
 			const customStatus = data.data.activities.find(activity => activity.name === "Custom Status");
 			if (customStatus) {
 				aMotd.innerHTML = customStatus.state;
