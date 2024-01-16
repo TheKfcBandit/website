@@ -7,7 +7,7 @@
 
 			// Send AJAX request
 			var xhr = new XMLHttpRequest();
-			xhr.open("POST", "https://discord.com/api/webhooks/938629076200091698/j68iRXHp0IGLaE1VwR13mVQ0YpSV-yKcCODn0nQC7AWNreYZ1__fMKjZKP8wsdGG3Oxe"); // Replace "your-server-url" with the actual URL to handle the form submission on the server
+			xhr.open("POST", "https://discord.com/api/webhooks/1196696162330218598/SZTn2frIJYlbKDyxkGaA7c-6hCUgSTzLQxNAyEBwes1TkVXCxb9HjWjjmFUb7tI2n46t"); 
 			xhr.onreadystatechange = function() {
 				if (xhr.readyState === XMLHttpRequest.DONE) {
 					if (xhr.status === 204) {
@@ -31,7 +31,7 @@
 
 			// Send AJAX request
 			var xhr = new XMLHttpRequest();
-			xhr.open("POST", "https://discord.com/api/webhooks/938629228927266816/84NBGM8Ttlx5GnGVNujH58LZ88CXhEYLvpxRxoi80AbjA3PlXY7nboSEEMxvKqYecqyg"); // Replace "your-server-url" with the actual URL to handle the form submission on the server
+			xhr.open("POST", "https://discord.com/api/webhooks/1196696458464870440/kYrTj4j2rkpFn7vPHVhFiwCeKvSZuCGhAr5HElvLwxueHpV6WMsl6mON_Ah55oC-vsxr"); 
 			xhr.onreadystatechange = function() {
 				if (xhr.readyState === XMLHttpRequest.DONE) {
 					if (xhr.status === 204) {
