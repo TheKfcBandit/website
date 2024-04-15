@@ -59,15 +59,21 @@ trackLinkElem.href = trackLink
 trackLinkElem.target = "_blank"
 trackLinkElem.textContent = track
 
+artistLinkElem = document.createElement('a')
+artistLinkElem.id = "artist"
+artistLinkElem.href = "https://www.last.fm/music/" + artist
+artistLinkElem.target = "_blank"
+artistLinkElem.textContent = artist
+
 userLinkElem = document.createElement('a')
 userLinkElem.href = "https://www.last.fm/user/thekfcbandit"
 userLinkElem.target = "_blank"
 userLinkElem.textContent = (relative_time != null) ? relative_time : "Now playing"
 
 trackElem.appendChild(trackLinkElem)
-artistElem.textContent = artist
 dateElem.appendChild(userLinkElem)
 albumcoverElem.src = imageLink
+artistElem.appendChild(artistLinkElem)
 
 console.log(
     "Artist: " + artist + "\n" +

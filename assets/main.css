@@ -87,6 +87,7 @@ video {
 	vertical-align: baseline;
 }
 
+
 article,
 aside,
 details,
@@ -1283,7 +1284,7 @@ p.style3 span.p:nth-child(n + 2) {
 	width: 6rem;
 	height: 2.5rem;
 	line-height: 2.5rem;
-	padding: 0 0.5rem;
+	padding: 0 .5rem;
 	vertical-align: middle;
 	font-family: 'Source Sans Pro', sans-serif;
 	font-size: 1em;
