@@ -1,6 +1,7 @@
 import { initGlow } from "./glow.js";
 import { watchPresence } from "./presence.js";
 import { watchTrack } from "./lastfm.js";
+import { initForm } from "./form.js";
 
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
@@ -49,3 +50,5 @@ watchTrack("thekfcbandit", "537af0ef3262086893a19328d00f2e75", t => {
   trackArtist.textContent = t.artist;
   trackWhen.textContent = t.ago;
 });
+
+initForm(document.getElementById("message"));
