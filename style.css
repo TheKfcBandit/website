@@ -51,6 +51,25 @@ body::before {
   opacity: 1;
 }
 
+.cursor {
+  position: fixed;
+  left: -60px;
+  top: -60px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(122, 150, 255, 0.28), transparent);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+  z-index: 2;
+}
+
+.cursor.on {
+  opacity: 1;
+}
+
 .card {
   position: relative;
   width: min(400px, 100%);
@@ -60,7 +79,7 @@ body::before {
   align-items: center;
   gap: 14px;
   text-align: center;
-  background: var(--fill);
+  background: rgba(12, 12, 18, 0.55);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
   backdrop-filter: blur(24px) saturate(140%);
   border: 1px solid var(--line);
@@ -97,7 +116,7 @@ h1 {
 
 .status,
 .activity {
-  min-height: 1lh;
+  min-height: 1.5em;
   color: var(--muted);
   font-size: 14px;
 }

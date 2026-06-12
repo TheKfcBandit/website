@@ -20,6 +20,14 @@ function syncGlow() {
 syncGlow();
 reduced.addEventListener("change", syncGlow);
 
+const cursor = document.querySelector(".cursor");
+
+addEventListener("pointermove", e => {
+  if (e.pointerType !== "mouse") return;
+  cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+  cursor.classList.toggle("on", !!e.target.closest("a"));
+});
+
 if (matchMedia("(hover: hover)").matches) {
   let rect;
   card.addEventListener("pointerenter", () => rect = card.getBoundingClientRect());
