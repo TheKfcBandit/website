@@ -49,7 +49,7 @@ void main() {
   float d = sdCard(pos);
   float a = atan(pos.y - u_center.y, pos.x - u_center.x) + u_time * 0.01;
   vec3 rim = palette(a);
-  float glow = d > 0.0 ? exp(-d / (130.0 * u_scale)) : exp(d / (30.0 * u_scale));
+  float glow = d > 0.0 ? exp(-d / (110.0 * u_scale)) : exp(d / (30.0 * u_scale));
   float i = glow * (0.5 + 0.06 * sin(u_time * 0.6));
   vec3 col = vec3(0.031, 0.031, 0.043) + rim * i;
   col += (hash(pos + fract(u_time)) - 0.5) / 128.0;
