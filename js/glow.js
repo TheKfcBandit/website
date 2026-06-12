@@ -9,12 +9,27 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform float u_time;
 uniform float u_scale;
-uniform vec4 u_card;
+uniform vec2 u_quad[4];
+uniform vec2 u_center;
 uniform float u_radius;
 
+float seg(vec2 p, vec2 a, vec2 b) {
+  vec2 pa = p - a, ba = b - a;
+  return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0));
+}
+
+float side(vec2 a, vec2 b, vec2 p) {
+  return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+}
+
 float sdCard(vec2 p) {
-  vec2 d = abs(p - u_card.xy) - u_card.zw + u_radius;
-  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - u_radius;
+  float d = min(
+    min(seg(p, u_quad[0], u_quad[1]), seg(p, u_quad[1], u_quad[2])),
+    min(seg(p, u_quad[2], u_quad[3]), seg(p, u_quad[3], u_quad[0])));
+  float s = min(
+    min(side(u_quad[0], u_quad[1], p), side(u_quad[1], u_quad[2], p)),
+    min(side(u_quad[2], u_quad[3], p), side(u_quad[3], u_quad[0], p)));
+  return (s > 0.0 ? -d : d) - u_radius;
 }
 
 vec3 palette(float a) {
@@ -32,9 +47,9 @@ float hash(vec2 p) {
 void main() {
   vec2 pos = vec2(gl_FragCoord.x, u_resolution.y - gl_FragCoord.y);
   float d = sdCard(pos);
-  float a = atan(pos.y - u_card.y, pos.x - u_card.x) + u_time * 0.25;
+  float a = atan(pos.y - u_center.y, pos.x - u_center.x) + u_time * 0.25;
   vec3 rim = palette(a);
-  float glow = d > 0.0 ? exp(-d / (130.0 * u_scale)) : exp(d / (30.0 * u_scale));
+  float glow = d > 0.0 ? exp(-d / (130.0 * u_scale)) : exp(d / (14.0 * u_scale));
   float i = glow * (0.5 + 0.06 * sin(u_time * 0.6));
   vec3 col = vec3(0.031, 0.031, 0.043) + rim * i;
   col += (hash(pos + fract(u_time)) - 0.5) / 128.0;
@@ -50,6 +65,8 @@ export function initGlow(canvas, card) {
   let time = 0;
   let last = 0;
   let uniforms;
+  let cardKey = "";
+  const quad = new Float32Array(8);
 
   function setup() {
     const program = gl.createProgram();
@@ -68,7 +85,7 @@ export function initGlow(canvas, card) {
     gl.enableVertexAttribArray(pos);
     gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
     uniforms = Object.fromEntries(
-      ["u_resolution", "u_time", "u_scale", "u_card", "u_radius"]
+      ["u_resolution", "u_time", "u_scale", "u_quad", "u_center", "u_radius"]
         .map(name => [name, gl.getUniformLocation(program, name)])
     );
     resize();
@@ -76,15 +93,34 @@ export function initGlow(canvas, card) {
   }
 
   function setCard() {
-    const r = card.getBoundingClientRect();
-    gl.uniform4f(uniforms.u_card,
-      (r.left + r.width / 2) * scale, (r.top + r.height / 2) * scale,
-      (r.width / 2) * scale, (r.height / 2) * scale);
-    gl.uniform1f(uniforms.u_radius, 24 * scale);
+    const w = card.offsetWidth;
+    const h = card.offsetHeight;
+    const t = getComputedStyle(card).transform;
+    const key = `${t}|${card.offsetLeft},${card.offsetTop},${w},${h},${scrollX},${scrollY}`;
+    if (key === cardKey) return;
+    cardKey = key;
+    const m = t === "none" ? new DOMMatrix() : new DOMMatrix(t);
+    const ox = (card.offsetLeft - scrollX + w / 2) * scale;
+    const oy = (card.offsetTop - scrollY + h / 2) * scale;
+    const r = 24;
+    let cx = 0;
+    let cy = 0;
+    [[r - w / 2, r - h / 2], [w / 2 - r, r - h / 2], [w / 2 - r, h / 2 - r], [r - w / 2, h / 2 - r]]
+      .forEach(([x, y], i) => {
+        const p = m.transformPoint(new DOMPoint(x, y));
+        quad[i * 2] = ox + (p.x / p.w) * scale;
+        quad[i * 2 + 1] = oy + (p.y / p.w) * scale;
+        cx += quad[i * 2] / 4;
+        cy += quad[i * 2 + 1] / 4;
+      });
+    gl.uniform2fv(uniforms.u_quad, quad);
+    gl.uniform2f(uniforms.u_center, cx, cy);
+    gl.uniform1f(uniforms.u_radius, r * scale);
   }
 
   function resize() {
     scale = Math.min(devicePixelRatio, 2) * 0.5;
+    cardKey = "";
     canvas.width = innerWidth * scale;
     canvas.height = innerHeight * scale;
     gl.viewport(0, 0, canvas.width, canvas.height);
