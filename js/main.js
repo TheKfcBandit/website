@@ -15,6 +15,7 @@ function syncGlow() {
   } else {
     stopGlow ??= initGlow(canvas, card);
   }
+  document.documentElement.classList.toggle("webgl", !!stopGlow);
 }
 
 syncGlow();
@@ -22,7 +23,7 @@ reduced.addEventListener("change", syncGlow);
 
 addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse") return;
-  const el = e.target.closest("nav a, .track");
+  const el = e.target.closest("nav a");
   if (!el) return;
   const r = el.getBoundingClientRect();
   el.style.setProperty("--mx", `${e.clientX - r.left}px`);
@@ -46,6 +47,56 @@ if (matchMedia("(hover: hover)").matches) {
 
 const avatar = card.querySelector(".avatar");
 const avatarImg = avatar.querySelector("img");
+
+let spin = 0;
+let spinVel = 0;
+let dragX = null;
+let spinRaf = 0;
+
+function renderSpin() {
+  avatarImg.style.transform = spin ? `perspective(300px) rotateY(${spin}deg)` : "";
+}
+
+function settle() {
+  spinVel *= 0.96;
+  spin += spinVel;
+  if (Math.abs(spinVel) < 0.5) {
+    const target = Math.round(spin / 360) * 360;
+    spin += (target - spin) * 0.12;
+    if (Math.abs(target - spin) < 0.5) {
+      spin = 0;
+      spinVel = 0;
+      renderSpin();
+      return;
+    }
+  }
+  renderSpin();
+  spinRaf = requestAnimationFrame(settle);
+}
+
+avatar.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  dragX = e.clientX;
+  spinVel = 0;
+  cancelAnimationFrame(spinRaf);
+  avatar.setPointerCapture(e.pointerId);
+});
+
+avatar.addEventListener("pointermove", e => {
+  if (dragX === null) return;
+  spinVel = (e.clientX - dragX) * 1.5;
+  spin += e.clientX - dragX;
+  dragX = e.clientX;
+  renderSpin();
+});
+
+const releaseSpin = () => {
+  if (dragX === null) return;
+  dragX = null;
+  spinRaf = requestAnimationFrame(settle);
+};
+avatar.addEventListener("pointerup", releaseSpin);
+avatar.addEventListener("pointercancel", releaseSpin);
 const status = card.querySelector(".status");
 const activity = card.querySelector(".activity");
 

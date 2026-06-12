@@ -26,6 +26,10 @@ body {
   font: 16px/1.5 system-ui, sans-serif;
 }
 
+.webgl body::before {
+  content: none;
+}
+
 body::before {
   content: "";
   position: fixed;
@@ -51,13 +55,11 @@ body::before {
   opacity: 1;
 }
 
-nav a,
-.track {
+nav a {
   position: relative;
 }
 
-nav a::after,
-.track::after {
+nav a::after {
   content: "";
   position: absolute;
   inset: -8px;
@@ -68,8 +70,7 @@ nav a::after,
   pointer-events: none;
 }
 
-nav a:hover::after,
-.track[href]:hover::after {
+nav a:hover::after {
   opacity: 1;
 }
 
@@ -100,7 +101,13 @@ nav a:hover::after,
   padding: 3px;
   border-radius: 50%;
   border: 3px solid var(--ring);
-  transition: border-color 0.4s;
+  cursor: grab;
+  touch-action: none;
+  transition: border-color 0.4s, transform 0.2s;
+}
+
+.avatar:hover {
+  transform: scale(1.06);
 }
 
 .avatar[data-status="online"] { --ring: #23a55a; }
