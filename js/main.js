@@ -15,7 +15,6 @@ function syncGlow() {
   } else {
     stopGlow ??= initGlow(canvas, card);
   }
-  document.documentElement.classList.toggle("webgl", !!stopGlow);
 }
 
 syncGlow();
@@ -58,11 +57,11 @@ function renderSpin() {
 }
 
 function settle() {
-  spinVel *= 0.96;
+  spinVel *= 0.985;
   spin += spinVel;
-  if (Math.abs(spinVel) < 0.5) {
+  if (Math.abs(spinVel) < 0.3) {
     const target = Math.round(spin / 360) * 360;
-    spin += (target - spin) * 0.12;
+    spin += (target - spin) * 0.05;
     if (Math.abs(target - spin) < 0.5) {
       spin = 0;
       spinVel = 0;
@@ -84,8 +83,8 @@ avatar.addEventListener("pointerdown", e => {
 
 avatar.addEventListener("pointermove", e => {
   if (dragX === null) return;
-  spinVel = (e.clientX - dragX) * 1.5;
-  spin += e.clientX - dragX;
+  spinVel = (e.clientX - dragX) * 0.8;
+  spin += (e.clientX - dragX) * 0.5;
   dragX = e.clientX;
   renderSpin();
 });

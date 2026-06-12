@@ -47,7 +47,7 @@ float hash(vec2 p) {
 void main() {
   vec2 pos = vec2(gl_FragCoord.x, u_resolution.y - gl_FragCoord.y);
   float d = sdCard(pos);
-  float a = atan(pos.y - u_center.y, pos.x - u_center.x) + u_time * 0.25;
+  float a = atan(pos.y - u_center.y, pos.x - u_center.x) + u_time * 0.01;
   vec3 rim = palette(a);
   float glow = d > 0.0 ? exp(-d / (130.0 * u_scale)) : exp(d / (14.0 * u_scale));
   float i = glow * (0.5 + 0.06 * sin(u_time * 0.6));
