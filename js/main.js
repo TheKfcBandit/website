@@ -21,6 +21,21 @@ function syncGlow() {
 syncGlow();
 reduced.addEventListener("change", syncGlow);
 
+if (matchMedia("(hover: hover)").matches) {
+  let rect;
+  card.addEventListener("pointerenter", () => rect = card.getBoundingClientRect());
+  card.addEventListener("pointermove", e => {
+    if (reduced.matches || !rect) return;
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    card.style.transform = `perspective(900px) rotateX(${-y * 6}deg) rotateY(${x * 6}deg)`;
+  });
+  card.addEventListener("pointerleave", () => {
+    rect = null;
+    card.style.transform = "";
+  });
+}
+
 const avatar = card.querySelector(".avatar");
 const avatarImg = avatar.querySelector("img");
 const status = card.querySelector(".status");
