@@ -23,11 +23,12 @@ export function watchTrack(user, apiKey, onUpdate) {
         url: track.url,
         art: track.image[2]?.["#text"],
         nowPlaying,
-        ago: nowPlaying ? "now playing" : since(track.date.uts * 1000),
+        ago: nowPlaying ? "now playing" : track.date ? since(track.date.uts * 1000) : "",
       });
     } catch {}
   }
 
   poll();
   setInterval(poll, 30000);
+  document.addEventListener("visibilitychange", () => document.hidden || poll());
 }
