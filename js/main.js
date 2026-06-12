@@ -83,8 +83,9 @@ avatar.addEventListener("pointerdown", e => {
 
 avatar.addEventListener("pointermove", e => {
   if (dragX === null) return;
-  spinVel = (e.clientX - dragX) * 0.8;
-  spin += (e.clientX - dragX) * 0.5;
+  const dx = e.clientX - dragX;
+  spinVel = Math.max(-80, Math.min(80, dx * 0.8 + dx * Math.abs(dx) * 0.02));
+  spin += dx * 0.5;
   dragX = e.clientX;
   renderSpin();
 });

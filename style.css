@@ -112,7 +112,7 @@ nav a:hover::after {
 }
 
 .avatar:hover {
-  transform: translateZ(22px) scale(1.04);
+  transform: translateZ(8px) scale(1.06);
 }
 
 .avatar[data-status="online"] { --ring: #23a55a; }
