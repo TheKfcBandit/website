@@ -32,12 +32,12 @@ float hash(vec2 p) {
 
 void main() {
   vec2 pos = vec2(gl_FragCoord.x, u_resolution.y - gl_FragCoord.y);
-  float d = max(sdCard(pos), 0.0);
+  float d = sdCard(pos);
   float a = atan(pos.y - u_card.y, pos.x - u_card.x) + u_time * 0.25;
   vec3 rim = palette(a);
   float cursor = exp(-length(pos - u_pointer) / (170.0 * u_scale));
   float halo = exp(-length(pos - u_pointer) / (520.0 * u_scale));
-  float glow = exp(-d / (130.0 * u_scale));
+  float glow = d > 0.0 ? exp(-d / (130.0 * u_scale)) : exp(d / (30.0 * u_scale));
   float i = glow * (0.38 + 0.03 * sin(u_time * 0.6) + 1.1 * cursor) + 0.05 * halo;
   vec3 col = vec3(0.031, 0.031, 0.043) + rim * i;
   col += (hash(pos + fract(u_time)) - 0.5) / 128.0;
