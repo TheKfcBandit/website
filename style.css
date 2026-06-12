@@ -154,6 +154,15 @@ h1 {
   content: " · ";
 }
 
+.track[data-live] .when {
+  color: #7a96ff;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: 0.5; }
+}
+
 .track:not([href]) .name::before,
 .track:not([href]) .sub::before {
   content: "";
@@ -288,5 +297,6 @@ form [role="status"] {
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+    animation: none !important;
   }
 }

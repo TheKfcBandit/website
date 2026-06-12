@@ -1,5 +1,6 @@
 import { initGlow } from "./glow.js";
 import { watchPresence } from "./presence.js";
+import { watchTrack } from "./lastfm.js";
 
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
@@ -32,4 +33,19 @@ watchPresence("79427255851298816", d => {
   status.textContent = d.activities.find(a => a.type === 4)?.state ?? "";
   const game = d.activities.find(a => a.type === 0);
   activity.textContent = game ? `playing ${game.name}` : "";
+});
+
+const track = card.querySelector(".track");
+const trackImg = track.querySelector("img");
+const trackName = track.querySelector(".name");
+const trackArtist = track.querySelector(".artist");
+const trackWhen = track.querySelector(".when");
+
+watchTrack("thekfcbandit", "537af0ef3262086893a19328d00f2e75", t => {
+  track.href = t.url;
+  track.toggleAttribute("data-live", t.nowPlaying);
+  if (t.art) trackImg.src = t.art;
+  trackName.textContent = t.name;
+  trackArtist.textContent = t.artist;
+  trackWhen.textContent = t.ago;
 });
