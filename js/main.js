@@ -20,12 +20,13 @@ function syncGlow() {
 syncGlow();
 reduced.addEventListener("change", syncGlow);
 
-const cursor = document.querySelector(".cursor");
-
 addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse") return;
-  cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
-  cursor.classList.toggle("on", !!e.target.closest("a"));
+  const el = e.target.closest("nav a, .track");
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+  el.style.setProperty("--my", `${e.clientY - r.top}px`);
 });
 
 if (matchMedia("(hover: hover)").matches) {
