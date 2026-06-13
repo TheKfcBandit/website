@@ -260,6 +260,10 @@ textarea {
   margin-top: 8px;
 }
 
+.suggest[hidden] {
+  display: none;
+}
+
 .results {
   list-style: none;
   margin: 0;
