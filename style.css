@@ -150,6 +150,7 @@ h1 {
 }
 
 .track {
+  position: relative;
   display: grid;
   grid-template-columns: 48px 1fr;
   grid-template-rows: 24px 24px;
@@ -200,6 +201,32 @@ nav a:hover {
 
 .track .when:not(:empty)::before {
   content: " · ";
+}
+
+.track .progress {
+  display: none;
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 3px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--line);
+}
+
+.track[data-spotify] .progress {
+  display: block;
+}
+
+.track .progress::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #7a96ff;
+  transform: scaleX(var(--p, 0));
+  transform-origin: left;
+  transition: transform 1s linear;
 }
 
 .track[data-live] .when {

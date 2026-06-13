@@ -159,3 +159,9 @@ watchTrack("thekfcbandit", "537af0ef3262086893a19328d00f2e75", t => {
   lastfm = t;
   if (!spotify) renderTrack(t);
 });
+
+setInterval(() => {
+  if (!spotify) return;
+  const { start, end } = spotify.timestamps;
+  track.style.setProperty("--p", Math.min((Date.now() - start) / (end - start), 1));
+}, 1000);
