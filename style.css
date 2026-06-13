@@ -178,12 +178,12 @@ nav a:hover::after {
   bottom: 0;
   width: var(--t, 0px);
   height: var(--t, 0px);
-  clip-path: polygon(100% 0, 0 100%, 100% 100%);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.4));
-  border-radius: 0 0 22px 0;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  background: linear-gradient(135deg, rgba(14, 14, 21, 0.95) 6%, rgba(44, 48, 66, 0.9) 56%, rgba(150, 160, 200, 0.78) 92%);
   opacity: var(--fold, 0);
+  filter: drop-shadow(2px 3px 6px rgba(0, 0, 0, 0.55));
   pointer-events: none;
-  z-index: 2;
+  z-index: 4;
 }
 
 .peel {
