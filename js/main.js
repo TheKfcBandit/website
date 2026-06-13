@@ -123,7 +123,7 @@ function kick() {
   }
 }
 
-const interactive = ".avatar, a, button, input, textarea";
+const interactive = ".avatar, a, button, input, textarea, .suggest, .note";
 
 card.addEventListener("pointerdown", e => {
   if (dragX !== null || card.hasAttribute("data-peel") || e.target.closest(interactive)) return;
@@ -331,9 +331,8 @@ noteForm.addEventListener("submit", async e => {
   noteButton.disabled = false;
 });
 
-const trackrow = card.querySelector(".trackrow");
-const addButton = trackrow.querySelector(".add");
-const suggest = trackrow.querySelector(".suggest");
+const addButton = card.querySelector(".add");
+const suggest = card.querySelector(".suggest");
 const suggestInput = suggest.querySelector("input");
 const results = suggest.querySelector(".results");
 const suggestFeedback = suggest.querySelector(".feedback");
@@ -344,26 +343,34 @@ function closeSuggest() {
   suggestInput.value = "";
   results.replaceChildren();
   suggestFeedback.textContent = "";
+  delete card.dataset.suggest;
 }
 
 addButton.addEventListener("click", () => {
-  suggest.hidden = !suggest.hidden;
-  if (!suggest.hidden) suggestInput.focus();
-  else closeSuggest();
+  if (suggest.hidden) {
+    suggest.hidden = false;
+    card.dataset.suggest = "1";
+    suggestInput.focus();
+  } else {
+    closeSuggest();
+  }
 });
 
 suggest.addEventListener("submit", e => e.preventDefault());
 
-suggest.addEventListener("keydown", e => {
+suggestInput.addEventListener("keydown", e => {
   if (e.key === "Escape") {
     closeSuggest();
     addButton.focus();
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    results.querySelector("button")?.click();
   }
 });
 
 suggestInput.addEventListener("input", () => {
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(searchSongs, 300);
+  searchTimer = setTimeout(searchSongs, 280);
 });
 
 async function searchSongs() {
@@ -376,22 +383,29 @@ async function searchSongs() {
       const li = document.createElement("li");
       const b = document.createElement("button");
       b.type = "button";
-      const img = new Image(28, 28);
+      const img = new Image(36, 36);
       img.src = t.art;
       img.alt = "";
-      const label = document.createElement("span");
-      label.textContent = `${t.name} — ${t.artist}`;
-      b.append(img, label);
-      b.addEventListener("click", () => pickSong(t.uri));
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      const title = document.createElement("span");
+      title.className = "r-title";
+      title.textContent = t.name;
+      const artist = document.createElement("span");
+      artist.className = "r-artist";
+      artist.textContent = t.artist;
+      meta.append(title, artist);
+      b.append(img, meta);
+      b.addEventListener("click", () => pickSong(t.uri, `${t.name} — ${t.artist}`));
       li.append(b);
       return li;
     }));
   } catch {}
 }
 
-async function pickSong(uri) {
-  for (const b of suggest.querySelectorAll("button")) b.disabled = true;
-  suggestFeedback.textContent = "";
+async function pickSong(uri, label) {
+  results.replaceChildren();
+  suggestFeedback.textContent = `queuing ${label}…`;
   try {
     const token = await getToken();
     const res = await fetch("/api/spotify/suggest", {
@@ -400,10 +414,9 @@ async function pickSong(uri) {
       body: JSON.stringify({ uri, token }),
     });
     if (!res.ok) throw 0;
-    suggestFeedback.textContent = (await res.json()).queued ? "queued for right now" : "saved to the pile";
-    setTimeout(closeSuggest, 2500);
+    suggestFeedback.textContent = (await res.json()).queued ? "queued for right now ✓" : "saved to the pile ✓";
+    setTimeout(closeSuggest, 2200);
   } catch {
     suggestFeedback.textContent = "didn't work, try again";
-    for (const b of suggest.querySelectorAll("button")) b.disabled = false;
   }
 }
