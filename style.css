@@ -121,6 +121,10 @@ nav a:hover::after {
   transform: rotateY(180deg);
 }
 
+.back::before {
+  background: #0d0d12;
+}
+
 .notes {
   list-style: none;
   padding: 0;
@@ -421,11 +425,12 @@ nav a:hover {
 .track .progress {
   display: none;
   position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 3px;
-  height: 2px;
-  border-radius: 1px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 0 0 14px 14px;
   background: var(--line);
 }
 
@@ -437,8 +442,7 @@ nav a:hover {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-  background: #7a96ff;
+  background: linear-gradient(90deg, #5c7fff, #7a96ff);
   transform: scaleX(var(--p, 0));
   transform-origin: left;
   transition: transform 1s linear;
