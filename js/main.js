@@ -100,6 +100,37 @@ avatar.addEventListener("pointercancel", releaseSpin);
 const status = card.querySelector(".status");
 const activity = card.querySelector(".activity");
 
+const track = card.querySelector(".track");
+const trackImg = track.querySelector("img");
+const trackName = track.querySelector(".name");
+const trackArtist = track.querySelector(".artist");
+const trackWhen = track.querySelector(".when");
+
+let spotify = null;
+let lastfm = null;
+
+function renderTrack(t) {
+  if (!t) return;
+  track.href = t.url;
+  track.toggleAttribute("data-live", t.nowPlaying);
+  track.toggleAttribute("data-spotify", !!spotify);
+  if (t.art) trackImg.src = t.art;
+  trackName.textContent = t.name;
+  trackArtist.textContent = t.artist;
+  trackWhen.textContent = t.ago;
+}
+
+function fromSpotify(s) {
+  return {
+    name: s.song,
+    artist: s.artist,
+    url: `https://open.spotify.com/track/${s.track_id}`,
+    art: s.album_art_url,
+    nowPlaying: true,
+    ago: "now playing",
+  };
+}
+
 watchPresence("79427255851298816", d => {
   avatar.dataset.status = d.discord_status;
   if (d.discord_user.avatar) {
@@ -108,19 +139,11 @@ watchPresence("79427255851298816", d => {
   status.textContent = d.activities.find(a => a.type === 4)?.state ?? "";
   const game = d.activities.find(a => a.type === 0);
   activity.textContent = game ? `playing ${game.name}` : "";
+  spotify = d.listening_to_spotify ? d.spotify : null;
+  renderTrack(spotify ? fromSpotify(spotify) : lastfm);
 });
 
-const track = card.querySelector(".track");
-const trackImg = track.querySelector("img");
-const trackName = track.querySelector(".name");
-const trackArtist = track.querySelector(".artist");
-const trackWhen = track.querySelector(".when");
-
 watchTrack("thekfcbandit", "537af0ef3262086893a19328d00f2e75", t => {
-  track.href = t.url;
-  track.toggleAttribute("data-live", t.nowPlaying);
-  if (t.art) trackImg.src = t.art;
-  trackName.textContent = t.name;
-  trackArtist.textContent = t.artist;
-  trackWhen.textContent = t.ago;
+  lastfm = t;
+  if (!spotify) renderTrack(t);
 });
