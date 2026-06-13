@@ -106,10 +106,19 @@ export function initPeel(card, onFirst) {
     if (!open && !drag && !reduced.matches) spring(0);
   });
 
-  addEventListener("keydown", e => {
-    if (e.key === "Escape" && open) {
-      setOpen(false);
+  function close() {
+    setOpen(false);
+    if (reduced.matches) {
+      t = 0;
+      apply();
+    } else {
       spring(0);
     }
+  }
+
+  addEventListener("keydown", e => {
+    if (e.key === "Escape" && open) close();
   });
+
+  return { close };
 }

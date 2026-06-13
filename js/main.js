@@ -176,7 +176,13 @@ card.addEventListener("pointerleave", () => {
 });
 
 faces();
-initPeel(card, loadNotes);
+const peelControl = initPeel(card, loadNotes);
+
+document.querySelector(".close").addEventListener("click", () => {
+  flipTarget = 0;
+  kick();
+  peelControl.close();
+});
 
 const avatar = card.querySelector(".avatar");
 const avatarImg = avatar.querySelector("img");
