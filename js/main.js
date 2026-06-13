@@ -2,6 +2,7 @@ import { initGlow } from "./glow.js";
 import { watchPresence } from "./presence.js";
 import { watchTrack } from "./lastfm.js";
 import { albumColor, timeTint } from "./tint.js";
+import { initPeel } from "./peel.js";
 
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
@@ -48,7 +49,7 @@ if (matchMedia("(hover: hover)").matches) {
   let rect;
   card.addEventListener("pointerenter", () => rect = card.getBoundingClientRect());
   card.addEventListener("pointermove", e => {
-    if (reduced.matches || !rect) return;
+    if (reduced.matches || !rect || card.hasAttribute("data-peel")) return;
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
     card.style.transform = `perspective(900px) rotateX(${-y * 6}deg) rotateY(${x * 6}deg)`;
@@ -181,3 +182,16 @@ setInterval(() => {
   const { start, end } = spotify.timestamps;
   track.style.setProperty("--p", Math.min((Date.now() - start) / (end - start), 1));
 }, 1000);
+
+initPeel(card, async () => {
+  const notes = await fetch("notes.json").then(r => r.json()).catch(() => []);
+  card.querySelector(".notes").replaceChildren(...notes.map(n => {
+    const li = document.createElement("li");
+    li.textContent = n.text;
+    const who = document.createElement("span");
+    who.className = "who";
+    who.textContent = `— ${n.who}`;
+    li.append(who);
+    return li;
+  }));
+});
