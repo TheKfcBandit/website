@@ -1,24 +1,39 @@
 import { initGlow } from "./glow.js";
 import { watchPresence } from "./presence.js";
 import { watchTrack } from "./lastfm.js";
+import { albumColor, timeTint } from "./tint.js";
 
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
 let stopGlow = null;
+let spotify = null;
+let lastfm = null;
 
 function syncGlow() {
   if (reduced.matches) {
-    stopGlow?.();
+    stopGlow?.stop();
     stopGlow = null;
   } else {
     stopGlow ??= initGlow(canvas, card);
+    syncTint();
   }
+}
+
+async function syncTint() {
+  if (!stopGlow) return;
+  const art = spotify?.album_art_url ?? (lastfm?.nowPlaying ? lastfm.art : null);
+  if (art) {
+    const c = await albumColor(art);
+    if (c) return stopGlow.setTint(c, 0.35);
+  }
+  stopGlow.setTint(...timeTint());
 }
 
 syncGlow();
 reduced.addEventListener("change", syncGlow);
+setInterval(syncTint, 300000);
 
 addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse") return;
@@ -119,9 +134,6 @@ const trackName = track.querySelector(".name");
 const trackArtist = track.querySelector(".artist");
 const trackWhen = track.querySelector(".when");
 
-let spotify = null;
-let lastfm = null;
-
 function renderTrack(t) {
   if (!t) return;
   track.href = t.url;
@@ -153,11 +165,15 @@ watchPresence("79427255851298816", d => {
   renderActivity(d.activities.find(a => a.type === 0));
   spotify = d.listening_to_spotify ? d.spotify : null;
   renderTrack(spotify ? fromSpotify(spotify) : lastfm);
+  syncTint();
 });
 
 watchTrack("thekfcbandit", "537af0ef3262086893a19328d00f2e75", t => {
   lastfm = t;
-  if (!spotify) renderTrack(t);
+  if (!spotify) {
+    renderTrack(t);
+    syncTint();
+  }
 });
 
 setInterval(() => {
