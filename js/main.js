@@ -127,7 +127,7 @@ function kick() {
 const interactive = ".avatar, a, button, input, textarea, .suggest, .note";
 
 card.addEventListener("pointerdown", e => {
-  if (dragX !== null || card.hasAttribute("data-peel") || e.target.closest(interactive)) return;
+  if (dragX !== null || !card.hasAttribute("data-peel") || e.target.closest(interactive)) return;
   if (reduced.matches) {
     flip = flipTarget = flip < 90 ? 180 : 0;
     faces();
