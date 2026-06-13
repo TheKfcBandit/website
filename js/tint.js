@@ -26,11 +26,26 @@ export async function albumColor(url) {
   return color;
 }
 
-export function timeTint() {
-  const h = Number(new Intl.DateTimeFormat("en", { timeZone: "America/Vancouver", hour: "numeric", hourCycle: "h23" }).format(new Date()));
-  if (h >= 22 || h < 5) return [[0.24, 0.38, 0.95], 0.3];
-  if (h < 8) return [[0.3, 0.62, 0.85], 0.24];
-  if (h < 16) return [[0.5, 0.62, 0.95], 0.14];
-  if (h < 19) return [[1, 0.58, 0.3], 0.32];
-  return [[1, 0.42, 0.52], 0.28];
+const keys = [
+  [0, 0.66], [5, 0.64], [8, 0.34], [11, 0.2], [13, 0.14],
+  [16, 0.04], [18, 0.99], [20, 0.9], [22, 0.78], [24, 0.66],
+];
+
+export function hourHue() {
+  const p = new Intl.DateTimeFormat("en", { timeZone: "America/Vancouver", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
+  const h = Number(p.find(x => x.type === "hour").value) + Number(p.find(x => x.type === "minute").value) / 60;
+  let a = keys[0];
+  let b = keys[keys.length - 1];
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (h >= keys[i][0] && h <= keys[i + 1][0]) {
+      a = keys[i];
+      b = keys[i + 1];
+      break;
+    }
+  }
+  const t = (h - a[0]) / (b[0] - a[0]);
+  let d = b[1] - a[1];
+  if (d > 0.5) d -= 1;
+  if (d < -0.5) d += 1;
+  return ((a[1] + d * t) % 1 + 1) % 1;
 }

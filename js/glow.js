@@ -14,6 +14,7 @@ uniform vec2 u_center;
 uniform float u_radius;
 uniform vec3 u_tint;
 uniform float u_tintAmt;
+uniform float u_hue;
 
 float seg(vec2 p, vec2 a, vec2 b) {
   vec2 pa = p - a, ba = b - a;
@@ -34,12 +35,14 @@ float sdCard(vec2 p) {
   return (s > 0.0 ? -d : d) - u_radius;
 }
 
+vec3 hue2rgb(float h) {
+  h = fract(h);
+  return clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+}
+
 vec3 palette(float a) {
-  float s = fract(a / 6.2832) * 4.0;
-  vec3 col = mix(vec3(0.231, 0.231, 1.0), vec3(1.0, 0.361, 0.38), smoothstep(0.0, 1.0, s));
-  col = mix(col, vec3(0.361, 0.498, 1.0), smoothstep(1.0, 2.0, s));
-  col = mix(col, vec3(0.447, 0.361, 1.0), smoothstep(2.0, 3.0, s));
-  return mix(col, vec3(0.231, 0.231, 1.0), smoothstep(3.0, 4.0, s));
+  float hue = u_hue + a * 0.032;
+  return mix(hue2rgb(hue), vec3(1.0), 0.22);
 }
 
 float hash(vec2 p) {
@@ -49,10 +52,11 @@ float hash(vec2 p) {
 void main() {
   vec2 pos = vec2(gl_FragCoord.x, u_resolution.y - gl_FragCoord.y);
   float d = sdCard(pos);
-  float a = atan(pos.y - u_center.y, pos.x - u_center.x) + u_time * 0.01;
+  float a = atan(pos.y - u_center.y, pos.x - u_center.x) + u_time * 0.02;
   vec3 rim = mix(palette(a), u_tint, u_tintAmt);
-  float glow = d > 0.0 ? exp(-d / (125.0 * u_scale)) : exp(d / (15.0 * u_scale));
-  float i = glow * (0.5 + 0.06 * sin(u_time * 0.6));
+  float lum = dot(rim, vec3(0.3, 0.59, 0.11));
+  float glow = d > 0.0 ? exp(-d / (140.0 * u_scale)) : exp(d / (38.0 * u_scale));
+  float i = glow * (0.6 + 0.06 * sin(u_time * 0.6)) * (1.0 - lum * 0.42);
   vec3 col = vec3(0.031, 0.031, 0.043) + rim * i;
   col += (hash(pos + fract(u_time)) - 0.5) / 128.0;
   gl_FragColor = vec4(col, 1.0);
@@ -73,6 +77,9 @@ export function initGlow(canvas, card) {
   const targetTint = [0, 0, 0];
   let amt = 0;
   let targetAmt = 0;
+  let hue = 0.66;
+  let targetHue = 0.66;
+  let hueSet = false;
 
   function setup() {
     const program = gl.createProgram();
@@ -91,7 +98,7 @@ export function initGlow(canvas, card) {
     gl.enableVertexAttribArray(pos);
     gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
     uniforms = Object.fromEntries(
-      ["u_resolution", "u_time", "u_scale", "u_quad", "u_center", "u_radius", "u_tint", "u_tintAmt"]
+      ["u_resolution", "u_time", "u_scale", "u_quad", "u_center", "u_radius", "u_tint", "u_tintAmt", "u_hue"]
         .map(name => [name, gl.getUniformLocation(program, name)])
     );
     resize();
@@ -142,10 +149,15 @@ export function initGlow(canvas, card) {
     const k = Math.min(dt * 1.2, 1);
     amt += (targetAmt - amt) * k;
     for (let i = 0; i < 3; i++) tint[i] += (targetTint[i] - tint[i]) * k;
+    let dh = targetHue - hue;
+    if (dh > 0.5) dh -= 1;
+    if (dh < -0.5) dh += 1;
+    hue = (hue + dh * Math.min(dt * 0.5, 1) + 1) % 1;
     setCard();
     gl.uniform1f(uniforms.u_time, time);
     gl.uniform3fv(uniforms.u_tint, tint);
     gl.uniform1f(uniforms.u_tintAmt, amt);
+    gl.uniform1f(uniforms.u_hue, hue);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     canvas.classList.add("on");
     raf = requestAnimationFrame(frame);
@@ -182,6 +194,13 @@ export function initGlow(canvas, card) {
     setTint(rgb, amount) {
       [targetTint[0], targetTint[1], targetTint[2]] = rgb;
       targetAmt = amount;
+    },
+    setHue(h) {
+      targetHue = h;
+      if (!hueSet) {
+        hue = h;
+        hueSet = true;
+      }
     },
     stop() {
       pause();

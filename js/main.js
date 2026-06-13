@@ -1,7 +1,7 @@
 import { initGlow } from "./glow.js";
 import { watchPresence } from "./presence.js";
 import { watchTrack } from "./lastfm.js";
-import { albumColor, timeTint } from "./tint.js";
+import { albumColor, hourHue } from "./tint.js";
 import { initPeel } from "./peel.js";
 import { getToken } from "./turnstile.js";
 
@@ -19,6 +19,7 @@ function syncGlow() {
     stopGlow = null;
   } else {
     stopGlow ??= initGlow(canvas, card);
+    stopGlow?.setHue(hourHue());
     syncTint();
   }
 }
@@ -28,14 +29,14 @@ async function syncTint() {
   const art = spotify?.album_art_url ?? (lastfm?.nowPlaying ? lastfm.art : null);
   if (art) {
     const c = await albumColor(art);
-    if (c) return stopGlow.setTint(c, 0.35);
+    if (c) return stopGlow.setTint(c, 0.4);
   }
-  stopGlow.setTint(...timeTint());
+  stopGlow.setTint([0, 0, 0], 0);
 }
 
 syncGlow();
 reduced.addEventListener("change", syncGlow);
-setInterval(syncTint, 300000);
+setInterval(() => stopGlow?.setHue(hourHue()), 60000);
 console.log("%cyo. flick the avatar harder.", "color:#7a96ff");
 
 addEventListener("pointermove", e => {
