@@ -108,13 +108,19 @@ export function initGlow(canvas, card) {
   function setCard() {
     const w = card.offsetWidth;
     const h = card.offsetHeight;
+    let ax = 0;
+    let ay = 0;
+    for (let el = card; el; el = el.offsetParent) {
+      ax += el.offsetLeft;
+      ay += el.offsetTop;
+    }
     const t = getComputedStyle(card).transform;
-    const key = `${t}|${card.offsetLeft},${card.offsetTop},${w},${h},${scrollX},${scrollY}`;
+    const key = `${t}|${ax},${ay},${w},${h},${scrollX},${scrollY}`;
     if (key === cardKey) return;
     cardKey = key;
     const m = t === "none" ? new DOMMatrix() : new DOMMatrix(t);
-    const ox = (card.offsetLeft - scrollX + w / 2) * scale;
-    const oy = (card.offsetTop - scrollY + h / 2) * scale;
+    const ox = (ax - scrollX + w / 2) * scale;
+    const oy = (ay - scrollY + h / 2) * scale;
     const r = 24;
     let cx = 0;
     let cy = 0;
