@@ -3,6 +3,7 @@ import { watchPresence } from "./presence.js";
 import { watchTrack } from "./lastfm.js";
 import { albumColor, timeTint } from "./tint.js";
 import { initPeel } from "./peel.js";
+import { getToken } from "./turnstile.js";
 
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
@@ -195,3 +196,105 @@ initPeel(card, async () => {
     return li;
   }));
 });
+
+const noteForm = card.querySelector(".note");
+const noteButton = noteForm.querySelector("button");
+const noteFeedback = noteForm.querySelector(".feedback");
+
+noteForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  noteButton.disabled = true;
+  noteFeedback.textContent = "";
+  try {
+    const data = Object.fromEntries(new FormData(noteForm));
+    data.token = await getToken();
+    const res = await fetch("/api/note", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw 0;
+    noteForm.reset();
+    noteFeedback.textContent = "sent, thanks";
+  } catch {
+    noteFeedback.textContent = "didn't send, try again";
+  }
+  noteButton.disabled = false;
+});
+
+const trackrow = card.querySelector(".trackrow");
+const addButton = trackrow.querySelector(".add");
+const suggest = trackrow.querySelector(".suggest");
+const suggestInput = suggest.querySelector("input");
+const results = suggest.querySelector(".results");
+const suggestFeedback = suggest.querySelector(".feedback");
+let searchTimer = 0;
+
+function closeSuggest() {
+  suggest.hidden = true;
+  suggestInput.value = "";
+  results.replaceChildren();
+  suggestFeedback.textContent = "";
+}
+
+addButton.addEventListener("click", () => {
+  suggest.hidden = !suggest.hidden;
+  if (!suggest.hidden) suggestInput.focus();
+  else closeSuggest();
+});
+
+suggest.addEventListener("submit", e => e.preventDefault());
+
+suggest.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    closeSuggest();
+    addButton.focus();
+  }
+});
+
+suggestInput.addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(searchSongs, 300);
+});
+
+async function searchSongs() {
+  const q = suggestInput.value.trim();
+  if (!q) return results.replaceChildren();
+  try {
+    const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(q)}`);
+    if (!res.ok) throw 0;
+    results.replaceChildren(...(await res.json()).map(t => {
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button";
+      const img = new Image(28, 28);
+      img.src = t.art;
+      img.alt = "";
+      const label = document.createElement("span");
+      label.textContent = `${t.name} — ${t.artist}`;
+      b.append(img, label);
+      b.addEventListener("click", () => pickSong(t.uri));
+      li.append(b);
+      return li;
+    }));
+  } catch {}
+}
+
+async function pickSong(uri) {
+  for (const b of suggest.querySelectorAll("button")) b.disabled = true;
+  suggestFeedback.textContent = "";
+  try {
+    const token = await getToken();
+    const res = await fetch("/api/spotify/suggest", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ uri, token }),
+    });
+    if (!res.ok) throw 0;
+    suggestFeedback.textContent = (await res.json()).queued ? "queued for right now" : "saved to the pile";
+    setTimeout(closeSuggest, 2500);
+  } catch {
+    suggestFeedback.textContent = "didn't work, try again";
+    for (const b of suggest.querySelectorAll("button")) b.disabled = false;
+  }
+}
