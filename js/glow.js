@@ -41,7 +41,7 @@ vec3 hue2rgb(float h) {
 }
 
 vec3 palette(float a) {
-  float hue = u_hue + a * 0.032;
+  float hue = u_hue + 0.085 * sin(a) + 0.035 * sin(2.0 * a + 1.0);
   return mix(hue2rgb(hue), vec3(1.0), 0.22);
 }
 
