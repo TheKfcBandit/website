@@ -2,7 +2,6 @@ import { initGlow } from "./glow.js";
 import { watchPresence } from "./presence.js";
 import { watchTrack } from "./lastfm.js";
 import { albumColor, timeTint } from "./tint.js";
-import { initPeel } from "./peel.js";
 import { getToken } from "./turnstile.js";
 
 const card = document.querySelector(".card");
@@ -47,20 +46,138 @@ addEventListener("pointermove", e => {
   el.style.setProperty("--my", `${e.clientY - r.top}px`);
 });
 
-if (matchMedia("(hover: hover)").matches) {
-  let rect;
-  card.addEventListener("pointerenter", () => rect = card.getBoundingClientRect());
-  card.addEventListener("pointermove", e => {
-    if (reduced.matches || !rect || card.hasAttribute("data-peel")) return;
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    card.style.transform = `perspective(900px) rotateX(${-y * 6}deg) rotateY(${x * 6}deg)`;
-  });
-  card.addEventListener("pointerleave", () => {
-    rect = null;
-    card.style.transform = "";
-  });
+const front = card.querySelector(".front");
+const back = card.querySelector(".back");
+
+let flip = 0;
+let flipVel = 0;
+let flipTarget = 0;
+let drag = null;
+let dragVel = 0;
+let tiltX = 0;
+let tiltY = 0;
+let tiltTX = 0;
+let tiltTY = 0;
+let raf = 0;
+let last = 0;
+let hoverRect = null;
+let notesLoaded = false;
+
+async function loadNotes() {
+  const notes = await fetch("notes.json").then(r => r.json()).catch(() => []);
+  card.querySelector(".notes").replaceChildren(...notes.map((n, i) => {
+    const li = document.createElement("li");
+    li.textContent = n.text;
+    const who = document.createElement("span");
+    who.className = "who";
+    who.textContent = `— ${n.who}`;
+    li.append(who);
+    li.style.setProperty("--r", `${(i % 2 ? 1 : -1) * (1.5 + Math.random() * 4)}deg`);
+    li.style.setProperty("--side", i % 2 ? "flex-end" : "flex-start");
+    return li;
+  }));
 }
+
+function faces() {
+  const n = ((flip % 360) + 360) % 360;
+  const backUp = n > 90 && n < 270;
+  front.style.visibility = backUp ? "hidden" : "visible";
+  back.style.visibility = backUp ? "visible" : "hidden";
+  front.inert = backUp;
+  back.inert = !backUp;
+  if (backUp && !notesLoaded) {
+    notesLoaded = true;
+    loadNotes();
+  }
+}
+
+function compose() {
+  card.style.transform = `perspective(900px) rotateY(${flip + tiltY}deg) rotateX(${tiltX}deg)`;
+}
+
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+  const k = 1 - Math.exp(-10 * dt);
+  tiltX += (tiltTX - tiltX) * k;
+  tiltY += (tiltTY - tiltY) * k;
+  if (!drag) {
+    flipVel += (flipTarget - flip) * 60 * dt;
+    flipVel *= Math.exp(-11 * dt);
+    flip += flipVel * dt;
+    if (Math.abs(flipVel) < 0.4 && Math.abs(flipTarget - flip) < 0.3) {
+      flip = flipTarget;
+      flipVel = 0;
+    }
+  }
+  faces();
+  compose();
+  if (!drag && flip === flipTarget && Math.abs(tiltTX - tiltX) < 0.02 && Math.abs(tiltTY - tiltY) < 0.02) {
+    raf = 0;
+    return;
+  }
+  raf = requestAnimationFrame(loop);
+}
+
+function kick() {
+  if (!raf) {
+    last = performance.now();
+    raf = requestAnimationFrame(loop);
+  }
+}
+
+const interactive = ".avatar, a, button, input, textarea";
+
+card.addEventListener("pointerdown", e => {
+  if (dragX !== null || e.target.closest(interactive)) return;
+  if (reduced.matches) {
+    flip = flipTarget = flip < 90 ? 180 : 0;
+    faces();
+    compose();
+    return;
+  }
+  e.preventDefault();
+  drag = { x: e.clientX, base: flip };
+  dragVel = 0;
+  card.setPointerCapture(e.pointerId);
+});
+
+card.addEventListener("pointerenter", () => {
+  if (!drag) hoverRect = card.getBoundingClientRect();
+});
+
+card.addEventListener("pointermove", e => {
+  if (drag) {
+    const nf = drag.base + (e.clientX - drag.x) * 0.5;
+    dragVel = nf - flip;
+    flip = nf;
+    kick();
+    return;
+  }
+  if (reduced.matches || dragX !== null || !hoverRect) return;
+  tiltTX = -((e.clientY - hoverRect.top) / hoverRect.height - 0.5) * 6;
+  tiltTY = ((e.clientX - hoverRect.left) / hoverRect.width - 0.5) * 6;
+  kick();
+});
+
+const endDrag = () => {
+  if (!drag) return;
+  drag = null;
+  flipVel = dragVel * 60;
+  flipTarget = Math.round((flip + dragVel * 3) / 180) * 180;
+  kick();
+};
+card.addEventListener("pointerup", endDrag);
+card.addEventListener("pointercancel", endDrag);
+
+card.addEventListener("pointerleave", () => {
+  hoverRect = null;
+  tiltTX = 0;
+  tiltTY = 0;
+  kick();
+});
+
+faces();
 
 const avatar = card.querySelector(".avatar");
 const avatarImg = avatar.querySelector("img");
@@ -190,19 +307,6 @@ setInterval(() => {
   const { start, end } = spotify.timestamps;
   track.style.setProperty("--p", Math.min((Date.now() - start) / (end - start), 1));
 }, 1000);
-
-initPeel(card, async () => {
-  const notes = await fetch("notes.json").then(r => r.json()).catch(() => []);
-  card.querySelector(".notes").replaceChildren(...notes.map(n => {
-    const li = document.createElement("li");
-    li.textContent = n.text;
-    const who = document.createElement("span");
-    who.className = "who";
-    who.textContent = `— ${n.who}`;
-    li.append(who);
-    return li;
-  }));
-});
 
 const noteForm = card.querySelector(".note");
 const noteButton = noteForm.querySelector("button");

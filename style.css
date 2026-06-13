@@ -71,36 +71,18 @@ nav a:hover::after {
 }
 
 .card {
-  --t: 28px;
   position: relative;
   width: min(400px, 100%);
   border-radius: 24px;
   transform-style: preserve-3d;
-  transition: transform 0.15s ease-out;
 }
 
 .face {
   border-radius: inherit;
+  backface-visibility: hidden;
 }
 
-.face > * {
-  margin: 0;
-}
-
-.front {
-  position: relative;
-  z-index: 1;
-  padding: 36px 32px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  text-align: center;
-  transform-style: preserve-3d;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--t)), calc(100% - var(--t)) 100%, 0 100%);
-}
-
-.front::before {
+.face::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -112,28 +94,31 @@ nav a:hover::after {
   border: 1px solid var(--line);
 }
 
+.face > * {
+  margin: 0;
+}
+
+.front {
+  position: relative;
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  transform-style: preserve-3d;
+}
+
 .back {
   position: absolute;
   inset: 0;
-  padding: 28px 32px;
+  padding: 28px 26px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  visibility: hidden;
+  gap: 14px;
   overflow: hidden;
-  background: rgba(10, 10, 14, 0.6);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
-  backdrop-filter: blur(24px) saturate(140%);
-  border: 1px solid var(--line);
-}
-
-.back h2 {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.back h2:focus {
-  outline: none;
+  visibility: hidden;
+  transform: rotateY(180deg);
 }
 
 .notes {
@@ -144,15 +129,25 @@ nav a:hover::after {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  text-align: left;
+  gap: 12px;
+}
+
+.notes li {
+  align-self: var(--side, center);
+  max-width: 88%;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 10px;
   font-size: 14px;
+  transform: rotate(var(--r, 0deg));
 }
 
 .notes .who {
   display: block;
   color: var(--muted);
   font-size: 12px;
+  margin-top: 2px;
 }
 
 input,
@@ -297,34 +292,6 @@ textarea {
 
 .results img {
   border-radius: 4px;
-}
-
-.fold {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: var(--t);
-  height: var(--t);
-  clip-path: polygon(0 0, 100% 0, 0 100%);
-  background: linear-gradient(315deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.08) 50%, rgba(0, 0, 0, 0.2));
-  border-radius: 0 0 0 6px;
-  opacity: var(--fold, 1);
-  pointer-events: none;
-  z-index: 2;
-}
-
-.peel {
-  position: absolute;
-  right: -8px;
-  bottom: -8px;
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  background: none;
-  border: 0;
-  cursor: grab;
-  touch-action: none;
-  z-index: 3;
 }
 
 .avatar {
