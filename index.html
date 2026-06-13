@@ -22,6 +22,7 @@
 <body>
 <canvas id="glow" aria-hidden="true"></canvas>
 <main class="card">
+<ul class="notes"></ul>
 <section class="face front">
   <span class="avatar" data-status="offline">
     <img src="assets/avatar.jpg" alt="" width="96" height="96" draggable="false" decoding="async">
@@ -65,7 +66,6 @@
   </nav>
 </section>
 <section class="face back" inert>
-  <ul class="notes"></ul>
   <form class="note">
     <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
     <textarea name="note" maxlength="280" required placeholder="leave a note" aria-label="note"></textarea>
@@ -73,6 +73,8 @@
     <p class="feedback" role="status"></p>
   </form>
 </section>
+<i class="fold" aria-hidden="true"></i>
+<button class="peel" aria-expanded="false" aria-label="peek at the messages"></button>
 </main>
 <div id="ts"></div>
 </body>

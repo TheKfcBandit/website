@@ -2,6 +2,7 @@ import { initGlow } from "./glow.js";
 import { watchPresence } from "./presence.js";
 import { watchTrack } from "./lastfm.js";
 import { albumColor, timeTint } from "./tint.js";
+import { initPeel } from "./peel.js";
 import { getToken } from "./turnstile.js";
 
 const card = document.querySelector(".card");
@@ -61,7 +62,6 @@ let tiltTY = 0;
 let raf = 0;
 let last = 0;
 let hoverRect = null;
-let notesLoaded = false;
 
 async function loadNotes() {
   const notes = await fetch("notes.json").then(r => r.json()).catch(() => []);
@@ -85,10 +85,7 @@ function faces() {
   back.style.visibility = backUp ? "visible" : "hidden";
   front.inert = backUp;
   back.inert = !backUp;
-  if (backUp && !notesLoaded) {
-    notesLoaded = true;
-    loadNotes();
-  }
+  card.dataset.flip = backUp ? "1" : "";
 }
 
 function compose() {
@@ -129,7 +126,7 @@ function kick() {
 const interactive = ".avatar, a, button, input, textarea";
 
 card.addEventListener("pointerdown", e => {
-  if (dragX !== null || e.target.closest(interactive)) return;
+  if (dragX !== null || card.hasAttribute("data-peel") || e.target.closest(interactive)) return;
   if (reduced.matches) {
     flip = flipTarget = flip < 90 ? 180 : 0;
     faces();
@@ -178,6 +175,7 @@ card.addEventListener("pointerleave", () => {
 });
 
 faces();
+initPeel(card, loadNotes);
 
 const avatar = card.querySelector(".avatar");
 const avatarImg = avatar.querySelector("img");
