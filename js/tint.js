@@ -28,9 +28,9 @@ export async function albumColor(url) {
 
 export function timeTint() {
   const h = Number(new Intl.DateTimeFormat("en", { timeZone: "America/Vancouver", hour: "numeric", hourCycle: "h23" }).format(new Date()));
-  if (h >= 1 && h <= 6) return [[0.2, 0.3, 0.7], 0.13];
-  if (h >= 17 && h <= 21) return [[1, 0.55, 0.35], 0.12];
-  if (h === 0 || h === 7) return [[0.2, 0.3, 0.7], 0.07];
-  if (h === 16 || h === 22) return [[1, 0.55, 0.35], 0.06];
-  return [[0, 0, 0], 0];
+  if (h >= 22 || h < 5) return [[0.24, 0.38, 0.95], 0.3];
+  if (h < 8) return [[0.3, 0.62, 0.85], 0.24];
+  if (h < 16) return [[0.5, 0.62, 0.95], 0.14];
+  if (h < 19) return [[1, 0.58, 0.3], 0.32];
+  return [[1, 0.42, 0.52], 0.28];
 }
