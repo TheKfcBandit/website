@@ -99,6 +99,19 @@ avatar.addEventListener("pointerup", releaseSpin);
 avatar.addEventListener("pointercancel", releaseSpin);
 const status = card.querySelector(".status");
 const activity = card.querySelector(".activity");
+const activityImg = activity.querySelector("img");
+const activityText = activity.querySelector("span");
+
+function renderActivity(a) {
+  activityText.textContent = a ? `playing ${a.name}` : "";
+  const asset = a?.assets?.small_image ?? a?.assets?.large_image;
+  activityImg.hidden = !asset;
+  if (asset) {
+    activityImg.src = asset.startsWith("mp:")
+      ? `https://media.discordapp.net/${asset.slice(3)}`
+      : `https://cdn.discordapp.com/app-assets/${a.application_id}/${asset}.png`;
+  }
+}
 
 const track = card.querySelector(".track");
 const trackImg = track.querySelector("img");
@@ -137,8 +150,7 @@ watchPresence("79427255851298816", d => {
     avatarImg.src = `https://cdn.discordapp.com/avatars/${d.discord_user.id}/${d.discord_user.avatar}.webp?size=160`;
   }
   status.textContent = d.activities.find(a => a.type === 4)?.state ?? "";
-  const game = d.activities.find(a => a.type === 0);
-  activity.textContent = game ? `playing ${game.name}` : "";
+  renderActivity(d.activities.find(a => a.type === 0));
   spotify = d.listening_to_spotify ? d.spotify : null;
   renderTrack(spotify ? fromSpotify(spotify) : lastfm);
 });

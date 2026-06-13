@@ -139,6 +139,14 @@ h1 {
 .activity {
   font-size: 13px;
   margin-top: -10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.activity img {
+  border-radius: 4px;
 }
 
 .track {
