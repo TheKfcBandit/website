@@ -338,6 +338,27 @@ textarea {
   transform: translateZ(8px) scale(1.06);
 }
 
+.avatar.rip {
+  animation: rip 0.7s ease-out;
+}
+
+@keyframes rip {
+  30% {
+    border-color: #f0c54a;
+    box-shadow: 0 0 24px rgba(240, 197, 74, 0.5);
+  }
+}
+
+.home {
+  color: var(--muted);
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.home:hover {
+  color: var(--text);
+}
+
 .avatar[data-status="online"] { --ring: #23a55a; }
 .avatar[data-status="idle"] { --ring: #f0b232; }
 .avatar[data-status="dnd"] { --ring: #f23f43; }
@@ -524,6 +545,11 @@ nav a:hover {
   color: var(--text);
   background: rgba(255, 255, 255, 0.07);
   transform: translateY(-2px);
+}
+
+nav a:active {
+  transform: translateY(-2px) scale(0.82);
+  transition-duration: 0.06s;
 }
 
 nav svg {

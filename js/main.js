@@ -36,6 +36,7 @@ async function syncTint() {
 syncGlow();
 reduced.addEventListener("change", syncGlow);
 setInterval(syncTint, 300000);
+console.log("%cyo. flick the avatar harder.", "color:#7a96ff");
 
 addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse") return;
@@ -110,6 +111,12 @@ avatar.addEventListener("pointermove", e => {
 const releaseSpin = () => {
   if (dragX === null) return;
   dragX = null;
+  if (Math.abs(spinVel) >= 75) {
+    avatar.classList.add("rip");
+    avatar.addEventListener("animationend", () => avatar.classList.remove("rip"), { once: true });
+    stopGlow?.setTint([1, 0.8, 0.3], 0.5);
+    setTimeout(syncTint, 700);
+  }
   spinRaf = requestAnimationFrame(settle);
 };
 avatar.addEventListener("pointerup", releaseSpin);
