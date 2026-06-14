@@ -42,7 +42,7 @@ console.log("%cyo. flick the avatar harder.", "color:#7a96ff");
 
 addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse") return;
-  const el = e.target.closest("nav a");
+  const el = e.target.closest("nav a, .close");
   if (!el) return;
   const r = el.getBoundingClientRect();
   el.style.setProperty("--mx", `${e.clientX - r.left}px`);
@@ -153,7 +153,7 @@ card.addEventListener("pointermove", e => {
     kick();
     return;
   }
-  if (reduced.matches || dragX !== null || !hoverRect) return;
+  if (reduced.matches || dragX !== null || !hoverRect || card.hasAttribute("data-peel")) return;
   tiltTX = -((e.clientY - hoverRect.top) / hoverRect.height - 0.5) * 6;
   tiltTY = ((e.clientX - hoverRect.left) / hoverRect.width - 0.5) * 6;
   kick();
