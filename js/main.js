@@ -3,6 +3,7 @@ import { watchPresence } from "./presence.js";
 import { watchTrack } from "./lastfm.js";
 import { albumColor, hourHue } from "./tint.js";
 import { initPeel } from "./peel.js";
+import { burst } from "./confetti.js";
 import { getToken } from "./turnstile.js";
 
 const card = document.querySelector(".card");
@@ -196,9 +197,31 @@ function renderSpin() {
   avatarImg.style.transform = spin ? `perspective(300px) rotateY(${spin}deg)` : "";
 }
 
+let celebrated = false;
+
+function celebrate() {
+  if (reduced.matches) return;
+  const r = avatar.getBoundingClientRect();
+  burst(r.left + r.width / 2, r.top + r.height / 2);
+  avatar.classList.add("rip");
+  avatar.addEventListener("animationend", () => avatar.classList.remove("rip"), { once: true });
+  stopGlow?.setTint([1, 0.8, 0.3], 0.5);
+  setTimeout(syncTint, 700);
+}
+
+function maybeCelebrate() {
+  if (Math.abs(spinVel) > 150 && !celebrated) {
+    celebrated = true;
+    celebrate();
+  } else if (Math.abs(spinVel) < 60) {
+    celebrated = false;
+  }
+}
+
 function settle() {
-  spinVel *= 0.985;
+  spinVel *= 0.99;
   spin += spinVel;
+  maybeCelebrate();
   if (Math.abs(spinVel) < 0.3) {
     const target = Math.round(spin / 360) * 360;
     spin += (target - spin) * 0.05;
@@ -216,7 +239,6 @@ function settle() {
 avatar.addEventListener("pointerdown", e => {
   e.preventDefault();
   dragX = e.clientX;
-  spinVel = 0;
   cancelAnimationFrame(spinRaf);
   avatar.setPointerCapture(e.pointerId);
 });
@@ -224,21 +246,16 @@ avatar.addEventListener("pointerdown", e => {
 avatar.addEventListener("pointermove", e => {
   if (dragX === null) return;
   const dx = e.clientX - dragX;
-  spinVel = Math.max(-80, Math.min(80, dx * 0.8 + dx * Math.abs(dx) * 0.02));
-  spin += dx * 0.5;
+  spin += dx;
+  spinVel = Math.max(-360, Math.min(360, spinVel * 0.88 + dx * 0.95));
   dragX = e.clientX;
+  maybeCelebrate();
   renderSpin();
 });
 
 const releaseSpin = () => {
   if (dragX === null) return;
   dragX = null;
-  if (Math.abs(spinVel) >= 75) {
-    avatar.classList.add("rip");
-    avatar.addEventListener("animationend", () => avatar.classList.remove("rip"), { once: true });
-    stopGlow?.setTint([1, 0.8, 0.3], 0.5);
-    setTimeout(syncTint, 700);
-  }
   spinRaf = requestAnimationFrame(settle);
 };
 avatar.addEventListener("pointerup", releaseSpin);

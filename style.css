@@ -306,6 +306,17 @@ textarea {
   transform: translateZ(8px) scale(1.06);
 }
 
+.confetti {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 50;
+}
+
 .avatar.rip {
   animation: rip 0.7s ease-out;
 }
