@@ -7,14 +7,14 @@ export function burst(x, y) {
     p.style.background = colors[i % colors.length];
     document.body.append(p);
     const dir = i % 2 ? 1 : -1;
-    const spread = (40 + Math.random() * 230) * dir;
-    const rise = 130 + Math.random() * 150;
-    const fall = 340 + Math.random() * 220;
-    const rot = (Math.random() - 0.5) * 900;
+    const spread = (25 + Math.random() * 120) * dir;
+    const rise = 40 + Math.random() * 65;
+    const fall = 300 + Math.random() * 220;
+    const rot = (Math.random() - 0.5) * 800;
     p.animate([
-      { transform: `translate(${x}px, ${y}px) rotate(0deg)`, opacity: 1 },
-      { transform: `translate(${x + spread * 0.45}px, ${y - rise}px) rotate(${rot * 0.4}deg)`, opacity: 1, offset: 0.35 },
+      { transform: `translate(${x}px, ${y}px) rotate(0deg)`, opacity: 1, easing: "ease-out" },
+      { transform: `translate(${x + spread * 0.5}px, ${y - rise}px) rotate(${rot * 0.4}deg)`, opacity: 1, offset: 0.3, easing: "ease-in" },
       { transform: `translate(${x + spread}px, ${y + fall}px) rotate(${rot}deg)`, opacity: 0 },
-    ], { duration: 2200 + Math.random() * 900, easing: "cubic-bezier(.33, .12, .55, 1)" }).onfinish = () => p.remove();
+    ], { duration: 1500 + Math.random() * 700 }).onfinish = () => p.remove();
   }
 }

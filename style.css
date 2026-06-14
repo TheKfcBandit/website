@@ -310,8 +310,8 @@ textarea {
   position: fixed;
   left: 0;
   top: 0;
-  width: 11px;
-  height: 11px;
+  width: 7px;
+  height: 7px;
   border-radius: 2px;
   pointer-events: none;
   z-index: 50;
