@@ -354,6 +354,10 @@ h1 {
   display: inline-flex;
 }
 
+.game[hidden] {
+  display: none;
+}
+
 .game svg {
   width: 17px;
   height: 17px;
