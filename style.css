@@ -147,7 +147,9 @@ nav a:hover::after {
 }
 
 .back::before {
-  background: rgba(13, 13, 19, 0.5);
+  background: #0f0f15;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .notes {
