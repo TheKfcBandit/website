@@ -1,10 +1,7 @@
 export function initPeel(card, onFirst) {
   const peel = card.querySelector(".peel");
-  const front = card.querySelector(".front");
-  const notes = card.querySelector(".notes");
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   const hint = 22;
-  const R = 24;
 
   let t = 0;
   let v = 0;
@@ -16,24 +13,9 @@ export function initPeel(card, onFirst) {
 
   const max = () => card.offsetWidth + card.offsetHeight;
 
-  function clip() {
-    if (t <= 0) {
-      front.style.clipPath = "";
-      notes.style.clipPath = "polygon(0 0, 0 0, 0 0)";
-      return;
-    }
-    const w = card.offsetWidth;
-    const h = card.offsetHeight;
-    const bx = Math.max(w - t, R);
-    const ry = Math.max(h - t, R);
-    front.style.clipPath = `path("M ${R} 0 L ${w - R} 0 A ${R} ${R} 0 0 1 ${w} ${R} L ${w} ${ry} L ${bx} ${h} L ${R} ${h} A ${R} ${R} 0 0 1 0 ${h - R} L 0 ${R} A ${R} ${R} 0 0 1 ${R} 0 Z")`;
-    notes.style.clipPath = `path("M ${w} ${ry} L ${bx} ${h} L ${w - R} ${h} A ${R} ${R} 0 0 0 ${w} ${h - R} Z")`;
-  }
-
   function apply() {
     card.style.setProperty("--t", `${t}px`);
     card.style.setProperty("--fold", String(Math.max(0, 1 - t / (max() * 0.5))));
-    clip();
   }
 
   function load() {
