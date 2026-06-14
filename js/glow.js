@@ -132,9 +132,12 @@ export function initGlow(canvas, card) {
         cx += quad[i * 2] / 4;
         cy += quad[i * 2 + 1] / 4;
       });
+    const topLen = Math.hypot(quad[2] - quad[0], quad[3] - quad[1]);
+    const sideLen = Math.hypot(quad[4] - quad[2], quad[5] - quad[3]);
+    const fore = Math.min(topLen / ((w - 2 * r) * scale), sideLen / ((h - 2 * r) * scale));
     gl.uniform2fv(uniforms.u_quad, quad);
     gl.uniform2f(uniforms.u_center, cx, cy);
-    gl.uniform1f(uniforms.u_radius, r * scale);
+    gl.uniform1f(uniforms.u_radius, r * scale * Math.max(0.04, Math.min(1, fore)));
   }
 
   function resize() {

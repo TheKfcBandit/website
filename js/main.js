@@ -210,10 +210,10 @@ function celebrate() {
 }
 
 function maybeCelebrate() {
-  if (Math.abs(spinVel) > 150 && !celebrated) {
+  if (Math.abs(spinVel) > 105 && !celebrated) {
     celebrated = true;
     celebrate();
-  } else if (Math.abs(spinVel) < 60) {
+  } else if (Math.abs(spinVel) < 45) {
     celebrated = false;
   }
 }
@@ -247,7 +247,7 @@ avatar.addEventListener("pointermove", e => {
   if (dragX === null) return;
   const dx = e.clientX - dragX;
   spin += dx;
-  spinVel = Math.max(-360, Math.min(360, spinVel * 0.88 + dx * 0.95));
+  spinVel = Math.max(-360, Math.min(360, spinVel * 0.88 + dx * 1.1));
   dragX = e.clientX;
   maybeCelebrate();
   renderSpin();
