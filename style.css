@@ -131,6 +131,7 @@ nav a:hover::after {
   gap: 14px;
   text-align: center;
   transform-style: preserve-3d;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--t, 0px)), calc(100% - var(--t, 0px)) 100%, 0 100%);
 }
 
 .back {
@@ -169,7 +170,7 @@ nav a:hover::after {
   justify-content: flex-end;
   gap: 12px;
   overflow: hidden;
-  clip-path: polygon(0 0, 0 0, 0 0);
+  clip-path: polygon(100% calc(100% - var(--t, 0px)), calc(100% - var(--t, 0px)) 100%, 100% 100%);
 }
 
 .notes li {
@@ -199,15 +200,14 @@ nav a:hover::after {
 
 .fold {
   position: absolute;
-  right: -7px;
-  bottom: -7px;
-  width: calc(var(--t, 0px) + 7px);
-  height: calc(var(--t, 0px) + 7px);
+  right: 0;
+  bottom: 0;
+  width: var(--t, 0px);
+  height: var(--t, 0px);
   clip-path: polygon(0 0, 100% 0, 0 100%);
-  background: linear-gradient(135deg, rgba(10, 10, 16, 0.98) 4%, rgba(40, 44, 62, 0.96) 52%, rgba(170, 180, 220, 0.92) 96%);
-  border-radius: 0 0 0 8px;
+  background: linear-gradient(135deg, rgba(14, 14, 21, 0.95) 6%, rgba(44, 48, 66, 0.9) 56%, rgba(150, 160, 200, 0.78) 92%);
   opacity: var(--fold, 0);
-  filter: drop-shadow(3px 4px 7px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(2px 3px 6px rgba(0, 0, 0, 0.55));
   pointer-events: none;
   z-index: 4;
 }

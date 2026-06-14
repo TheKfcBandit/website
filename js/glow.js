@@ -55,7 +55,7 @@ void main() {
   float a = atan(pos.y - u_center.y, pos.x - u_center.x) + u_time * 0.02;
   vec3 rim = mix(palette(a), u_tint, u_tintAmt);
   float lum = dot(rim, vec3(0.3, 0.59, 0.11));
-  float glow = d > 0.0 ? exp(-d / (140.0 * u_scale)) : exp(d / (30.0 * u_scale));
+  float glow = d > 0.0 ? exp(-d / (140.0 * u_scale)) : 0.0;
   float i = glow * (0.6 + 0.06 * sin(u_time * 0.6)) * (1.0 - lum * 0.42);
   vec3 col = vec3(0.031, 0.031, 0.043) + rim * i;
   col += (hash(pos + fract(u_time)) - 0.5) / 128.0;
