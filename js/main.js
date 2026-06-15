@@ -42,7 +42,7 @@ console.log("%cyo. flick the avatar harder.", "color:#7a96ff");
 
 addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse") return;
-  const el = e.target.closest("nav a, .close");
+  const el = e.target.closest("nav a");
   if (!el) return;
   const r = el.getBoundingClientRect();
   el.style.setProperty("--mx", `${e.clientX - r.left}px`);
@@ -219,12 +219,12 @@ function maybeCelebrate() {
 }
 
 function settle() {
-  spinVel *= 0.99;
+  spinVel *= 0.965;
   spin += spinVel;
   maybeCelebrate();
-  if (Math.abs(spinVel) < 0.3) {
+  if (Math.abs(spinVel) < 4) {
     const target = Math.round(spin / 360) * 360;
-    spin += (target - spin) * 0.05;
+    spin += (target - spin) * 0.12;
     if (Math.abs(target - spin) < 0.5) {
       spin = 0;
       spinVel = 0;
@@ -246,8 +246,8 @@ avatar.addEventListener("pointerdown", e => {
 avatar.addEventListener("pointermove", e => {
   if (dragX === null) return;
   const dx = e.clientX - dragX;
-  spin += dx;
-  spinVel = Math.max(-360, Math.min(360, spinVel * 0.88 + dx * 1.1));
+  spin += dx * 0.85;
+  spinVel = Math.max(-360, Math.min(360, spinVel * 0.88 + dx * 1.0));
   dragX = e.clientX;
   maybeCelebrate();
   renderSpin();
