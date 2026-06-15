@@ -102,7 +102,7 @@ function loop(now) {
   tiltY += (tiltTY - tiltY) * k;
   if (!drag) {
     flipVel += (flipTarget - flip) * 60 * dt;
-    flipVel *= Math.exp(-11 * dt);
+    flipVel *= Math.exp(-16 * dt);
     flip += flipVel * dt;
     if (Math.abs(flipVel) < 0.4 && Math.abs(flipTarget - flip) < 0.3) {
       flip = flipTarget;
