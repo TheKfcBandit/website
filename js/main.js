@@ -38,7 +38,6 @@ async function syncTint() {
 syncGlow();
 reduced.addEventListener("change", syncGlow);
 setInterval(() => stopGlow?.setHue(hourHue()), 60000);
-console.log("%cyo. flick the avatar harder.", "color:#7a96ff");
 
 addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse") return;
