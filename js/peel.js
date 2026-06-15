@@ -11,11 +11,29 @@ export function initPeel(card, onFirst) {
   let loaded = false;
   let suppress = false;
 
-  const max = () => card.offsetWidth + card.offsetHeight;
+  const size = () => ({ w: card.offsetWidth, h: card.offsetHeight });
+  const max = () => {
+    const { w, h } = size();
+    return w + h;
+  };
 
   function apply() {
+    const { w, h } = size();
+    const leftY = Math.min(h, Math.max(0, max() - t));
+    const topX = Math.min(w, Math.max(0, max() - t));
+    const rightY = Math.min(h, Math.max(0, h - t));
+    const bottomX = Math.min(w, Math.max(0, w - t));
     card.style.setProperty("--t", `${t}px`);
-    card.style.setProperty("--fold", String(Math.max(0, 1 - t / (max() * 0.5))));
+    card.style.setProperty("--left-y", `${leftY}px`);
+    card.style.setProperty("--top-x", `${topX}px`);
+    card.style.setProperty("--right-y", `${rightY}px`);
+    card.style.setProperty("--bottom-x", `${bottomX}px`);
+    card.style.setProperty("--peel-x", `${Math.min(t, w)}px`);
+    card.style.setProperty("--peel-y", `${Math.min(t, h)}px`);
+    const fold = Math.min(t / 16, (Math.min(w, h) - t) / 80);
+    card.style.setProperty("--fold", String(Math.max(0, Math.min(1, fold))));
+    card.style.setProperty("--open", String(t / max()));
+    card.toggleAttribute("data-unpeeled", t >= max() - 1);
   }
 
   function load() {
@@ -51,6 +69,8 @@ export function initPeel(card, onFirst) {
     card.toggleAttribute("data-peel", o || !!drag);
     if (o) load();
   }
+
+  apply();
 
   peel.addEventListener("pointerdown", e => {
     if (reduced.matches) return;

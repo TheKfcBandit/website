@@ -41,7 +41,7 @@ setInterval(() => stopGlow?.setHue(hourHue()), 60000);
 
 addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse") return;
-  const el = e.target.closest("nav a");
+  const el = e.target.closest(".glow-target");
   if (!el) return;
   const r = el.getBoundingClientRect();
   el.style.setProperty("--mx", `${e.clientX - r.left}px`);
