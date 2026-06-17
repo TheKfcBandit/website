@@ -141,7 +141,7 @@ export function initGlow(canvas, card) {
   }
 
   function resize() {
-    scale = Math.min(devicePixelRatio, 2);
+    scale = Math.max(2, Math.min(devicePixelRatio, 2.5));
     cardKey = "";
     canvas.width = innerWidth * scale;
     canvas.height = innerHeight * scale;

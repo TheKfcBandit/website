@@ -1,6 +1,7 @@
-export function initPeel(card, onFirst) {
+import { stepSpring } from "./spring.js";
+
+export function initPeel(card, onFirst, reduced) {
   const peel = card.querySelector(".peel");
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   const hint = 22;
 
   let t = 0;
@@ -30,17 +31,12 @@ export function initPeel(card, onFirst) {
     const step = now => {
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
-      v += (target - t) * 150 * dt;
-      v *= Math.exp(-15 * dt);
-      t += v * dt;
-      if (Math.abs(v) < 3 && Math.abs(target - t) < 0.5) {
-        t = target;
-        v = 0;
-        apply();
-        return;
-      }
+      const s = { x: t, v };
+      const done = stepSpring(s, target, 150, 15, dt, 3, 0.5);
+      t = s.x;
+      v = s.v;
       apply();
-      raf = requestAnimationFrame(step);
+      if (!done) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
   }

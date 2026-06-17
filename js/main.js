@@ -5,6 +5,7 @@ import { albumColor, hourHue } from "./tint.js";
 import { initPeel } from "./peel.js";
 import { burst } from "./confetti.js";
 import { getToken } from "./turnstile.js";
+import { stepSpring } from "./spring.js";
 
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
@@ -41,7 +42,7 @@ setInterval(() => stopGlow?.setHue(hourHue()), 60000);
 
 addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse") return;
-  const el = e.target.closest("nav a");
+  const el = e.target.closest("nav a, .close");
   if (!el) return;
   const r = el.getBoundingClientRect();
   el.style.setProperty("--mx", `${e.clientX - r.left}px`);
@@ -100,13 +101,10 @@ function loop(now) {
   tiltX += (tiltTX - tiltX) * k;
   tiltY += (tiltTY - tiltY) * k;
   if (!drag) {
-    flipVel += (flipTarget - flip) * 60 * dt;
-    flipVel *= Math.exp(-16 * dt);
-    flip += flipVel * dt;
-    if (Math.abs(flipVel) < 0.4 && Math.abs(flipTarget - flip) < 0.3) {
-      flip = flipTarget;
-      flipVel = 0;
-    }
+    const s = { x: flip, v: flipVel };
+    stepSpring(s, flipTarget, 60, 16, dt, 0.4, 0.3);
+    flip = s.x;
+    flipVel = s.v;
   }
   faces();
   compose();
@@ -124,7 +122,7 @@ function kick() {
   }
 }
 
-const interactive = ".avatar, a, button, input, textarea, .suggest, .note";
+const interactive = ".avatar, a, button, input, textarea, .note";
 
 card.addEventListener("pointerdown", e => {
   if (dragX !== null || !card.hasAttribute("data-peel") || e.target.closest(interactive)) return;
@@ -152,7 +150,7 @@ card.addEventListener("pointermove", e => {
     kick();
     return;
   }
-  if (reduced.matches || dragX !== null || !hoverRect || card.hasAttribute("data-peel")) return;
+  if (reduced.matches || dragX !== null || !hoverRect) return;
   tiltTX = -((e.clientY - hoverRect.top) / hoverRect.height - 0.5) * 6;
   tiltTY = ((e.clientX - hoverRect.left) / hoverRect.width - 0.5) * 6;
   kick();
@@ -176,7 +174,7 @@ card.addEventListener("pointerleave", () => {
 });
 
 faces();
-const peelControl = initPeel(card, loadNotes);
+const peelControl = initPeel(card, loadNotes, reduced);
 
 document.querySelector(".close").addEventListener("click", () => {
   flipTarget = 0;
