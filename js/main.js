@@ -26,14 +26,16 @@ function syncGlow() {
   }
 }
 
+let tintSeq = 0;
+
 async function syncTint() {
   if (!stopGlow) return;
+  const seq = ++tintSeq;
   const art = spotify?.album_art_url ?? (lastfm?.nowPlaying ? lastfm.art : null);
-  if (art) {
-    const c = await albumColor(art);
-    if (c) return stopGlow.setTint(c, 0.4);
-  }
-  stopGlow.setTint([0, 0, 0], 0);
+  const c = art ? await albumColor(art) : null;
+  if (seq !== tintSeq || !stopGlow) return;
+  if (c) stopGlow.setTint(c, 0.4);
+  else stopGlow.setTint([0, 0, 0], 0);
 }
 
 syncGlow();
@@ -64,6 +66,7 @@ let tiltTY = 0;
 let raf = 0;
 let last = 0;
 let hoverRect = null;
+let focusBack = false;
 
 async function loadNotes() {
   const notes = await fetch("notes.json").then(r => r.json()).catch(() => []);
@@ -88,6 +91,10 @@ function faces() {
   front.inert = backUp;
   back.inert = !backUp;
   card.dataset.flip = backUp ? "1" : "";
+  if (backUp && focusBack) {
+    focusBack = false;
+    back.querySelector("textarea").focus({ preventScroll: true });
+  }
 }
 
 function compose() {
@@ -122,14 +129,24 @@ function kick() {
   }
 }
 
+function flipTo(target) {
+  flipTarget = target;
+  if (reduced.matches) {
+    flip = target;
+    flipVel = 0;
+    faces();
+    compose();
+  } else {
+    kick();
+  }
+}
+
 const interactive = ".avatar, a, button, input, textarea, .note";
 
 card.addEventListener("pointerdown", e => {
   if (dragX !== null || !card.hasAttribute("data-peel") || e.target.closest(interactive)) return;
   if (reduced.matches) {
-    flip = flipTarget = flip < 90 ? 180 : 0;
-    faces();
-    compose();
+    flipTo(Math.round(flip / 360) * 360 + (card.dataset.flip ? 0 : 180));
     return;
   }
   e.preventDefault();
@@ -173,13 +190,27 @@ card.addEventListener("pointerleave", () => {
   kick();
 });
 
-faces();
-const peelControl = initPeel(card, loadNotes, reduced);
-
-document.querySelector(".close").addEventListener("click", () => {
-  flipTarget = 0;
-  kick();
+function closeCard() {
+  flipTo(Math.round(flip / 360) * 360);
   peelControl.close();
+}
+
+function keyFlip() {
+  if (card.dataset.flip) {
+    closeCard();
+  } else {
+    focusBack = true;
+    flipTo(Math.round(flip / 360) * 360 + 180);
+  }
+}
+
+faces();
+const peelControl = initPeel(card, loadNotes, reduced, keyFlip);
+
+document.querySelector(".close").addEventListener("click", closeCard);
+
+addEventListener("keydown", e => {
+  if (e.key === "Escape" && card.dataset.flip) closeCard();
 });
 
 const avatar = card.querySelector(".avatar");
@@ -274,11 +305,22 @@ const trackArtist = track.querySelector(".artist");
 const trackWhen = track.querySelector(".when");
 
 function renderTrack(t) {
-  if (!t) return;
+  if (!t) {
+    track.removeAttribute("href");
+    track.removeAttribute("data-live");
+    track.removeAttribute("data-spotify");
+    track.style.removeProperty("--p");
+    trackImg.removeAttribute("src");
+    trackName.textContent = "";
+    trackArtist.textContent = "";
+    trackWhen.textContent = "";
+    return;
+  }
   track.href = t.url;
   track.toggleAttribute("data-live", t.nowPlaying);
   track.toggleAttribute("data-spotify", !!spotify);
   if (t.art) trackImg.src = t.art;
+  else trackImg.removeAttribute("src");
   trackName.textContent = t.name;
   trackArtist.textContent = t.artist;
   trackWhen.textContent = t.ago;

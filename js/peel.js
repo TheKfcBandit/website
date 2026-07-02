@@ -1,6 +1,6 @@
 import { stepSpring } from "./spring.js";
 
-export function initPeel(card, onFirst, reduced) {
+export function initPeel(card, onFirst, reduced, onKeyFlip) {
   const peel = card.querySelector(".peel");
   const hint = 22;
 
@@ -65,12 +65,12 @@ export function initPeel(card, onFirst, reduced) {
     apply();
   });
 
-  const end = () => {
+  const end = e => {
     if (!drag) return;
     const moved = Math.abs(t - drag.t) > 6;
     drag = null;
     if (moved) {
-      suppress = true;
+      suppress = e.type === "pointerup";
       setOpen(t > max() * 0.4);
       spring(open ? max() : 0);
     } else {
@@ -80,9 +80,13 @@ export function initPeel(card, onFirst, reduced) {
   peel.addEventListener("pointerup", end);
   peel.addEventListener("pointercancel", end);
 
-  peel.addEventListener("click", () => {
+  peel.addEventListener("click", e => {
     if (suppress) {
       suppress = false;
+      return;
+    }
+    if (e.detail === 0 && open) {
+      onKeyFlip();
       return;
     }
     const next = !open;

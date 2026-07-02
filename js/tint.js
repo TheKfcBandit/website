@@ -21,8 +21,10 @@ export async function albumColor(url) {
     const max = Math.max(r, g, b) || 1;
     color = [r / max, g / max, b / max];
   } catch {}
-  if (cache.size > 8) cache.delete(cache.keys().next().value);
-  cache.set(url, color);
+  if (color) {
+    if (cache.size > 8) cache.delete(cache.keys().next().value);
+    cache.set(url, color);
+  }
   return color;
 }
 
