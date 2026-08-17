@@ -190,7 +190,6 @@ h1 {
 body[data-stage] .track,
 body[data-stage] .track[href]:hover {
   background: none;
-  border-color: transparent;
 }
 
 .track[href]:hover {

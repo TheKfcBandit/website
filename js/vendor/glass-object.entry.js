@@ -7,7 +7,8 @@ const BACKDROP_DISTANCE = 30;
 const DEFAULTS = {
   backgroundFragment: "",
   backgroundUniforms: null,
-  pixelRatio: 1.5,
+  antialias: true,
+  pixelRatio: 2,
   transmissionScale: 0.5,
   ior: 1.75,
   thickness: 4,
@@ -163,7 +164,7 @@ export function createGlassScene(elements, options = {}) {
 
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: "high-performance" });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: config.antialias, alpha: true, powerPreference: "high-performance" });
   } catch {
     return null;
   }
