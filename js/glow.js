@@ -11,8 +11,6 @@ uniform float u_scale;
 uniform vec2 u_quad[4];
 uniform vec2 u_center;
 uniform float u_radius;
-uniform vec3 u_tint;
-uniform float u_tintAmt;
 uniform float u_hue;
 uniform float u_fill;
 
@@ -52,7 +50,7 @@ float hash(vec2 p) {
 vec3 glowAt(vec2 pos) {
   float d = sdCard(pos);
   float a = atan(pos.y - u_center.y, pos.x - u_center.x) + u_time * 0.02;
-  vec3 rim = mix(palette(a), u_tint, u_tintAmt);
+  vec3 rim = palette(a);
   float lum = dot(rim, vec3(0.3, 0.59, 0.11));
   float glow = d > 0.0 ? exp(-d / (140.0 * u_scale)) : u_fill;
   float i = glow * (0.6 + 0.06 * sin(u_time * 0.6)) * (1.0 - lum * 0.42);
@@ -79,10 +77,6 @@ export function initGlow(canvas, card) {
   let uniforms;
   let cardKey = "";
   const quad = new Float32Array(8);
-  const tint = [0, 0, 0];
-  const targetTint = [0, 0, 0];
-  let amt = 0;
-  let targetAmt = 0;
   let hue = 0.66;
   let targetHue = 0.66;
   let hueSet = false;
@@ -104,7 +98,7 @@ export function initGlow(canvas, card) {
     gl.enableVertexAttribArray(pos);
     gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
     uniforms = Object.fromEntries(
-      ["u_resolution", "u_time", "u_scale", "u_quad", "u_center", "u_radius", "u_tint", "u_tintAmt", "u_hue", "u_fill"]
+      ["u_resolution", "u_time", "u_scale", "u_quad", "u_center", "u_radius", "u_hue", "u_fill"]
         .map(name => [name, gl.getUniformLocation(program, name)])
     );
     gl.uniform1f(uniforms.u_fill, 0);
@@ -162,17 +156,12 @@ export function initGlow(canvas, card) {
     const dt = Math.min((now - last) / 1000, 0.1);
     last = now;
     time += dt;
-    const k = Math.min(dt * 1.2, 1);
-    amt += (targetAmt - amt) * k;
-    for (let i = 0; i < 3; i++) tint[i] += (targetTint[i] - tint[i]) * k;
     let dh = targetHue - hue;
     if (dh > 0.5) dh -= 1;
     if (dh < -0.5) dh += 1;
     hue = (hue + dh * Math.min(dt * 0.5, 1) + 1) % 1;
     setCard();
     gl.uniform1f(uniforms.u_time, time);
-    gl.uniform3fv(uniforms.u_tint, tint);
-    gl.uniform1f(uniforms.u_tintAmt, amt);
     gl.uniform1f(uniforms.u_hue, hue);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     canvas.classList.add("on");
@@ -207,10 +196,6 @@ export function initGlow(canvas, card) {
   start();
 
   return {
-    setTint(rgb, amount) {
-      [targetTint[0], targetTint[1], targetTint[2]] = rgb;
-      targetAmt = amount;
-    },
     setHue(h) {
       targetHue = h;
       if (!hueSet) {

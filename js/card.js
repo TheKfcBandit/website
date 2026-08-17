@@ -31,8 +31,6 @@ export async function initCard(canvas, card) {
       u_quad: [[0, 0], [0, 0], [0, 0], [0, 0]],
       u_center: [0, 0],
       u_radius: RADIUS,
-      u_tint: [0, 0, 0],
-      u_tintAmt: 0,
       u_hue: 0.66,
       u_fill: 0.22,
     },
@@ -49,9 +47,9 @@ export async function initCard(canvas, card) {
     bevel: BEVEL,
     highlight: "#5c7fff",
     environmentIntensity: 0.14,
-    floatIntensity: 0.35,
-    rotationIntensity: 0.6,
-    floatSpeed: 1.4,
+    floatIntensity: 0.16,
+    rotationIntensity: 0.3,
+    floatSpeed: 0.7,
     onFrame: compose,
   });
   if (!scene) return null;
@@ -127,10 +125,6 @@ export async function initCard(canvas, card) {
     setTilt(x, y) {
       targetX = x;
       targetY = y;
-    },
-    setTint(rgb, amount) {
-      scene.setBackgroundUniform("u_tint", rgb);
-      scene.setBackgroundUniform("u_tintAmt", amount);
     },
     setHue(hue) {
       scene.setBackgroundUniform("u_hue", hue);

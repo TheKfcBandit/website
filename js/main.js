@@ -1,7 +1,7 @@
 import { initGlow } from "./glow.js";
 import { watchPresence } from "./presence.js";
 import { watchTrack } from "./lastfm.js";
-import { albumColor, hourHue } from "./tint.js";
+import { hourHue } from "./tint.js";
 import { stepSpring } from "./spring.js";
 import { initCard } from "./card.js";
 
@@ -25,20 +25,6 @@ function syncGlow() {
     stopGlow ??= initGlow(canvas, card);
   }
   glow()?.setHue(hourHue());
-  syncTint();
-}
-
-let tintSeq = 0;
-
-async function syncTint() {
-  if (!glow()) return;
-  const seq = ++tintSeq;
-  const art = spotify?.album_art_url ?? (lastfm?.nowPlaying ? lastfm.art : null);
-  const c = art ? await albumColor(art) : null;
-  const g = glow();
-  if (seq !== tintSeq || !g) return;
-  if (c) g.setTint(c, 0.4);
-  else g.setTint([0, 0, 0], 0);
 }
 
 syncGlow();
@@ -195,15 +181,11 @@ watchPresence("79427255851298816", d => {
   renderStatus(d);
   spotify = d.listening_to_spotify ? d.spotify : null;
   renderTrack(spotify ? fromSpotify(spotify) : lastfm);
-  syncTint();
 });
 
 watchTrack("thekfcbandit", "537af0ef3262086893a19328d00f2e75", t => {
   lastfm = t;
-  if (!spotify) {
-    renderTrack(t);
-    syncTint();
-  }
+  if (!spotify) renderTrack(t);
 });
 
 setInterval(() => {
