@@ -34,7 +34,7 @@ export async function initCard(canvas, card) {
       u_tint: [0, 0, 0],
       u_tintAmt: 0,
       u_hue: 0.66,
-      u_fill: 0.6,
+      u_fill: 0.22,
     },
     focal: 900,
     cameraDistance: 4,
@@ -44,11 +44,11 @@ export async function initCard(canvas, card) {
     dispersion: 0,
     clearcoat: 0.4,
     tint: "#1d2340",
-    tintDensity: 4,
+    tintDensity: 6,
     depth: DEPTH,
     bevel: BEVEL,
     highlight: "#5c7fff",
-    environmentIntensity: 0.55,
+    environmentIntensity: 0.14,
     floatIntensity: 0.35,
     rotationIntensity: 0.6,
     floatSpeed: 1.4,
@@ -58,7 +58,26 @@ export async function initCard(canvas, card) {
 
   scene.add("card", {});
 
+  function place() {
+    const nw = card.offsetWidth;
+    const nh = card.offsetHeight;
+    const [cx, cy] = offsetIn(card, null);
+    const nx = cx + nw / 2 - scrollX;
+    const ny = cy + nh / 2 - scrollY;
+    if (nw !== w || nh !== h) {
+      w = nw;
+      h = nh;
+      schedule();
+    }
+    if (nx !== originX || ny !== originY) {
+      originX = nx;
+      originY = ny;
+      scene.focus(originX - innerWidth / 2, originY - innerHeight / 2);
+    }
+  }
+
   function compose() {
+    place();
     const now = performance.now();
     const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
     last = now;
@@ -80,38 +99,29 @@ export async function initCard(canvas, card) {
     scene.setBackgroundUniform("u_radius", radius);
   }
 
-  let key = "";
+  let shaped = "";
 
-  function measure() {
-    const nw = card.offsetWidth;
-    const nh = card.offsetHeight;
-    const [cx, cy] = offsetIn(card, null);
-    const next = `${nw},${nh},${cx},${cy},${innerWidth},${innerHeight}`;
-    if (next === key) return;
-    key = next;
-    w = nw;
-    h = nh;
-    originX = cx + w / 2 - scrollX;
-    originY = cy + h / 2 - scrollY;
-
+  function shape() {
+    const key = `${w},${h}`;
+    if (key === shaped || !w || !h) return;
+    shaped = key;
     const thickness = DEPTH * Math.max(w, h);
     const inset = BEVEL * thickness * 0.45;
     const soften = BEVEL * (DEPTH * (Math.max(w, h) - 2 * inset)) * 0.625;
-
-    scene.focus(originX - innerWidth / 2, originY - innerHeight / 2);
     scene.update("card", { src: slabSvg(w, h, RADIUS - inset - soften, inset) });
   }
 
   let pending = 0;
-  const schedule = () => {
+  function schedule() {
     clearTimeout(pending);
-    pending = setTimeout(measure, 120);
-  };
+    pending = setTimeout(shape, 120);
+  }
 
-  const observer = new ResizeObserver(schedule);
+  const observer = new ResizeObserver(place);
   observer.observe(card);
-  addEventListener("resize", schedule);
-  measure();
+  addEventListener("resize", place);
+  place();
+  shape();
 
   return {
     setTilt(x, y) {
@@ -131,7 +141,7 @@ export async function initCard(canvas, card) {
     stop() {
       clearTimeout(pending);
       observer.disconnect();
-      removeEventListener("resize", schedule);
+      removeEventListener("resize", place);
       scene.destroy();
       card.style.transform = "";
       canvas.classList.remove("on");
