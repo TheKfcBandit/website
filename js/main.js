@@ -2,292 +2,142 @@ import { initGlow } from "./glow.js";
 import { watchPresence } from "./presence.js";
 import { watchTrack } from "./lastfm.js";
 import { albumColor, hourHue } from "./tint.js";
-import { initPeel } from "./peel.js";
-import { burst } from "./confetti.js";
-import { getToken } from "./turnstile.js";
 import { stepSpring } from "./spring.js";
+import { initCard } from "./card.js";
 
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
+const stage = document.getElementById("stage");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
 let stopGlow = null;
+let slab = null;
 let spotify = null;
 let lastfm = null;
 
+const glow = () => slab ?? stopGlow;
+
 function syncGlow() {
-  if (reduced.matches) {
+  if (reduced.matches || slab) {
     stopGlow?.stop();
     stopGlow = null;
   } else {
     stopGlow ??= initGlow(canvas, card);
-    stopGlow?.setHue(hourHue());
-    syncTint();
   }
+  glow()?.setHue(hourHue());
+  syncTint();
 }
 
 let tintSeq = 0;
 
 async function syncTint() {
-  if (!stopGlow) return;
+  if (!glow()) return;
   const seq = ++tintSeq;
   const art = spotify?.album_art_url ?? (lastfm?.nowPlaying ? lastfm.art : null);
   const c = art ? await albumColor(art) : null;
-  if (seq !== tintSeq || !stopGlow) return;
-  if (c) stopGlow.setTint(c, 0.4);
-  else stopGlow.setTint([0, 0, 0], 0);
+  const g = glow();
+  if (seq !== tintSeq || !g) return;
+  if (c) g.setTint(c, 0.4);
+  else g.setTint([0, 0, 0], 0);
 }
 
 syncGlow();
 reduced.addEventListener("change", syncGlow);
-setInterval(() => stopGlow?.setHue(hourHue()), 60000);
+setInterval(() => glow()?.setHue(hourHue()), 60000);
+
+let hoverRect = null;
+
+card.addEventListener("pointerenter", () => {
+  hoverRect = card.getBoundingClientRect();
+});
+
+card.addEventListener("pointermove", e => {
+  if (reduced.matches || !hoverRect || !slab) return;
+  slab.setTilt(
+    -((e.clientY - hoverRect.top) / hoverRect.height - 0.5) * 6,
+    ((e.clientX - hoverRect.left) / hoverRect.width - 0.5) * 6
+  );
+});
+
+card.addEventListener("pointerleave", () => {
+  hoverRect = null;
+  slab?.setTilt(0, 0);
+});
+
+const magnets = new Map();
+let magnetic = null;
+
+function pull(el, tx, ty) {
+  let m = magnets.get(el);
+  if (!m) {
+    m = { x: { x: 0, v: 0 }, y: { x: 0, v: 0 }, tx: 0, ty: 0, raf: 0, last: 0 };
+    magnets.set(el, m);
+  }
+  m.tx = tx;
+  m.ty = ty;
+  if (m.raf) return;
+  m.last = performance.now();
+  const step = now => {
+    const dt = Math.min((now - m.last) / 1000, 0.05);
+    m.last = now;
+    const restX = stepSpring(m.x, m.tx, 240, 24, dt, 0.4, 0.05);
+    const restY = stepSpring(m.y, m.ty, 240, 24, dt, 0.4, 0.05);
+    el.style.setProperty("--pull-x", `${m.x.x}px`);
+    el.style.setProperty("--pull-y", `${m.y.x}px`);
+    if (restX && restY) {
+      m.raf = 0;
+      if (!m.tx && !m.ty) {
+        el.style.removeProperty("--pull-x");
+        el.style.removeProperty("--pull-y");
+      }
+      return;
+    }
+    m.raf = requestAnimationFrame(step);
+  };
+  m.raf = requestAnimationFrame(step);
+}
 
 addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse") return;
-  const el = e.target.closest("nav a, .close");
+  const el = e.target.closest?.("nav a");
+  if (el !== magnetic) {
+    if (magnetic) pull(magnetic, 0, 0);
+    magnetic = el;
+  }
   if (!el) return;
   const r = el.getBoundingClientRect();
   el.style.setProperty("--mx", `${e.clientX - r.left}px`);
   el.style.setProperty("--my", `${e.clientY - r.top}px`);
+  if (reduced.matches) return;
+  pull(el, (e.clientX - r.left - r.width / 2) * 0.32, (e.clientY - r.top - r.height / 2) * 0.32);
 });
 
-const front = card.querySelector(".front");
-const back = card.querySelector(".back");
-
-let flip = 0;
-let flipVel = 0;
-let flipTarget = 0;
-let drag = null;
-let dragVel = 0;
-let tiltX = 0;
-let tiltY = 0;
-let tiltTX = 0;
-let tiltTY = 0;
-let raf = 0;
-let last = 0;
-let hoverRect = null;
-let focusBack = false;
-
-async function loadNotes() {
-  const notes = await fetch("notes.json").then(r => r.json()).catch(() => []);
-  card.querySelector(".notes").replaceChildren(...notes.map((n, i) => {
-    const li = document.createElement("li");
-    li.textContent = n.text;
-    const who = document.createElement("span");
-    who.className = "who";
-    who.textContent = `— ${n.who}`;
-    li.append(who);
-    li.style.setProperty("--r", `${(i % 2 ? 1 : -1) * (1.5 + Math.random() * 4)}deg`);
-    li.style.setProperty("--side", i % 2 ? "flex-end" : "flex-start");
-    return li;
-  }));
-}
-
-function faces() {
-  const n = ((flip % 360) + 360) % 360;
-  const backUp = n > 90 && n < 270;
-  front.style.visibility = backUp ? "hidden" : "visible";
-  back.style.visibility = backUp ? "visible" : "hidden";
-  front.inert = backUp;
-  back.inert = !backUp;
-  card.dataset.flip = backUp ? "1" : "";
-  if (backUp && focusBack) {
-    focusBack = false;
-    back.querySelector("textarea").focus({ preventScroll: true });
-  }
-}
-
-function compose() {
-  card.style.transform = `perspective(900px) rotateY(${flip + tiltY}deg) rotateX(${tiltX}deg)`;
-}
-
-function loop(now) {
-  const dt = Math.min((now - last) / 1000, 0.05);
-  last = now;
-  const k = 1 - Math.exp(-10 * dt);
-  tiltX += (tiltTX - tiltX) * k;
-  tiltY += (tiltTY - tiltY) * k;
-  if (!drag) {
-    const s = { x: flip, v: flipVel };
-    stepSpring(s, flipTarget, 60, 16, dt, 0.4, 0.3);
-    flip = s.x;
-    flipVel = s.v;
-  }
-  faces();
-  compose();
-  if (!drag && flip === flipTarget && Math.abs(tiltTX - tiltX) < 0.02 && Math.abs(tiltTY - tiltY) < 0.02) {
-    raf = 0;
-    return;
-  }
-  raf = requestAnimationFrame(loop);
-}
-
-function kick() {
-  if (!raf) {
-    last = performance.now();
-    raf = requestAnimationFrame(loop);
-  }
-}
-
-function flipTo(target) {
-  flipTarget = target;
+async function syncCard() {
   if (reduced.matches) {
-    flip = target;
-    flipVel = 0;
-    faces();
-    compose();
-  } else {
-    kick();
+    slab?.stop();
+    slab = null;
+    delete document.body.dataset.stage;
+    syncGlow();
+    return;
   }
-}
-
-const interactive = ".avatar, a, button, input, textarea, .note";
-
-card.addEventListener("pointerdown", e => {
-  if (dragX !== null || !card.hasAttribute("data-peel") || e.target.closest(interactive)) return;
+  if (slab) return;
+  const next = await initCard(stage, card).catch(() => null);
+  if (!next) return;
   if (reduced.matches) {
-    flipTo(Math.round(flip / 360) * 360 + (card.dataset.flip ? 0 : 180));
+    next.stop();
     return;
   }
-  e.preventDefault();
-  drag = { x: e.clientX, base: flip };
-  dragVel = 0;
-  card.setPointerCapture(e.pointerId);
-});
-
-card.addEventListener("pointerenter", () => {
-  if (!drag) hoverRect = card.getBoundingClientRect();
-});
-
-card.addEventListener("pointermove", e => {
-  if (drag) {
-    const nf = drag.base + (e.clientX - drag.x) * 0.5;
-    dragVel = nf - flip;
-    flip = nf;
-    kick();
-    return;
-  }
-  if (reduced.matches || dragX !== null || !hoverRect) return;
-  tiltTX = -((e.clientY - hoverRect.top) / hoverRect.height - 0.5) * 6;
-  tiltTY = ((e.clientX - hoverRect.left) / hoverRect.width - 0.5) * 6;
-  kick();
-});
-
-const endDrag = () => {
-  if (!drag) return;
-  drag = null;
-  flipVel = dragVel * 60;
-  flipTarget = Math.round((flip + dragVel * 3) / 180) * 180;
-  kick();
-};
-card.addEventListener("pointerup", endDrag);
-card.addEventListener("pointercancel", endDrag);
-
-card.addEventListener("pointerleave", () => {
-  hoverRect = null;
-  tiltTX = 0;
-  tiltTY = 0;
-  kick();
-});
-
-function closeCard() {
-  flipTo(Math.round(flip / 360) * 360);
-  peelControl.close();
+  slab = next;
+  document.body.dataset.stage = "";
+  slab.ready();
+  syncGlow();
 }
 
-function keyFlip() {
-  if (card.dataset.flip) {
-    closeCard();
-  } else {
-    focusBack = true;
-    flipTo(Math.round(flip / 360) * 360 + 180);
-  }
-}
-
-faces();
-const peelControl = initPeel(card, loadNotes, reduced, keyFlip);
-
-document.querySelector(".close").addEventListener("click", closeCard);
-
-addEventListener("keydown", e => {
-  if (e.key === "Escape" && card.dataset.flip) closeCard();
-});
+addEventListener("load", syncCard, { once: true });
+reduced.addEventListener("change", syncCard);
 
 const avatar = card.querySelector(".avatar");
 const avatarImg = avatar.querySelector("img");
-
-let spin = 0;
-let spinVel = 0;
-let dragX = null;
-let spinRaf = 0;
-
-function renderSpin() {
-  avatarImg.style.transform = spin ? `perspective(300px) rotateY(${spin}deg)` : "";
-}
-
-let celebrated = false;
-
-function celebrate() {
-  if (reduced.matches) return;
-  const r = avatar.getBoundingClientRect();
-  burst(r.left + r.width / 2, r.top + r.height / 2);
-  avatar.classList.add("rip");
-  avatar.addEventListener("animationend", () => avatar.classList.remove("rip"), { once: true });
-  stopGlow?.setTint([1, 0.8, 0.3], 0.5);
-  setTimeout(syncTint, 700);
-}
-
-function maybeCelebrate() {
-  if (Math.abs(spinVel) > 105 && !celebrated) {
-    celebrated = true;
-    celebrate();
-  } else if (Math.abs(spinVel) < 45) {
-    celebrated = false;
-  }
-}
-
-function settle() {
-  spinVel *= 0.965;
-  spin += spinVel;
-  maybeCelebrate();
-  if (Math.abs(spinVel) < 4) {
-    const target = Math.round(spin / 360) * 360;
-    spin += (target - spin) * 0.12;
-    if (Math.abs(target - spin) < 0.5) {
-      spin = 0;
-      spinVel = 0;
-      renderSpin();
-      return;
-    }
-  }
-  renderSpin();
-  spinRaf = requestAnimationFrame(settle);
-}
-
-avatar.addEventListener("pointerdown", e => {
-  e.preventDefault();
-  dragX = e.clientX;
-  cancelAnimationFrame(spinRaf);
-  avatar.setPointerCapture(e.pointerId);
-});
-
-avatar.addEventListener("pointermove", e => {
-  if (dragX === null) return;
-  const dx = e.clientX - dragX;
-  spin += dx * 0.85;
-  spinVel = Math.max(-360, Math.min(360, spinVel * 0.88 + dx * 1.0));
-  dragX = e.clientX;
-  maybeCelebrate();
-  renderSpin();
-});
-
-const releaseSpin = () => {
-  if (dragX === null) return;
-  dragX = null;
-  spinRaf = requestAnimationFrame(settle);
-};
-avatar.addEventListener("pointerup", releaseSpin);
-avatar.addEventListener("pointercancel", releaseSpin);
 const statusText = card.querySelector(".status .text");
 const gameIcon = card.querySelector(".status .game");
 
@@ -361,28 +211,3 @@ setInterval(() => {
   const { start, end } = spotify.timestamps;
   track.style.setProperty("--p", Math.min((Date.now() - start) / (end - start), 1));
 }, 1000);
-
-const noteForm = card.querySelector(".note");
-const noteButton = noteForm.querySelector("button");
-const noteFeedback = noteForm.querySelector(".feedback");
-
-noteForm.addEventListener("submit", async e => {
-  e.preventDefault();
-  noteButton.disabled = true;
-  noteFeedback.textContent = "";
-  try {
-    const data = Object.fromEntries(new FormData(noteForm));
-    data.token = await getToken();
-    const res = await fetch("/api/note", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw 0;
-    noteForm.reset();
-    noteFeedback.textContent = "sent, thanks";
-  } catch {
-    noteFeedback.textContent = "didn't send, try again";
-  }
-  noteButton.disabled = false;
-});
