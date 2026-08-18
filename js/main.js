@@ -146,6 +146,10 @@ function showToast(message) {
 
 const queue = initQueue(card.querySelector(".player"), showToast);
 
+function syncQueue() {
+  queue.playing(!!spotify || !!lastfm?.nowPlaying);
+}
+
 const avatar = card.querySelector(".avatar");
 const avatarImg = avatar.querySelector("img");
 const statusText = card.querySelector(".status .text");
@@ -204,13 +208,14 @@ watchPresence("79427255851298816", d => {
   }
   renderStatus(d);
   spotify = d.listening_to_spotify ? d.spotify : null;
-  queue.playing(!!spotify);
   renderTrack(spotify ? fromSpotify(spotify) : lastfm);
+  syncQueue();
 });
 
 watchTrack("thekfcbandit", "537af0ef3262086893a19328d00f2e75", t => {
   lastfm = t;
   if (!spotify) renderTrack(t);
+  syncQueue();
 });
 
 setInterval(() => {
