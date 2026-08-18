@@ -10,7 +10,7 @@ const MESSAGES = {
   forbidden: "spotify wouldn't take that",
 };
 
-export function initQueue(player, toast) {
+export function initQueue(player) {
   const button = player.querySelector(".queue");
   const form = player.querySelector(".find");
   const input = form.querySelector("input");
@@ -32,6 +32,8 @@ export function initQueue(player, toast) {
     active = -1;
     list.replaceChildren();
     send.disabled = true;
+    delete send.dataset.state;
+    send.removeAttribute("title");
     controller?.abort();
   }
 
@@ -121,6 +123,8 @@ export function initQueue(player, toast) {
     clearTimeout(timer);
     picked = null;
     send.disabled = true;
+    delete send.dataset.state;
+    send.removeAttribute("title");
     if (!q) {
       results = [];
       list.replaceChildren();
@@ -147,7 +151,11 @@ export function initQueue(player, toast) {
     e.preventDefault();
     if (!picked) return;
     const track = picked;
-    open(false);
+    send.disabled = true;
+    send.dataset.state = "sending";
+    send.removeAttribute("title");
+    let ok = false;
+    let error = "";
     try {
       const token = await getToken();
       const res = await fetch("/api/queue", {
@@ -155,15 +163,20 @@ export function initQueue(player, toast) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ uri: track.uri, token }),
       });
-      if (res.ok) {
-        toast(`queued ${track.name}`, "ok");
-        return;
+      ok = res.ok;
+      if (!ok) error = (await res.json().catch(() => ({}))).error;
+    } catch {}
+    send.dataset.state = ok ? "ok" : "err";
+    if (!ok) send.title = MESSAGES[error] ?? "couldn't queue that";
+    setTimeout(() => {
+      if (ok) {
+        open(false);
+      } else {
+        delete send.dataset.state;
+        send.removeAttribute("title");
+        send.disabled = !picked;
       }
-      const data = await res.json().catch(() => ({}));
-      toast(MESSAGES[data.error] ?? "couldn't queue that", "error");
-    } catch {
-      toast("couldn't queue that", "error");
-    }
+    }, ok ? 1100 : 1600);
   });
 
   return {

@@ -9,7 +9,6 @@ import { initQueue } from "./queue.js";
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
 const stage = document.getElementById("stage");
-const toastEl = document.querySelector(".toast");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
 let stopGlow = null;
@@ -124,26 +123,7 @@ async function syncCard() {
 addEventListener("load", syncCard, { once: true });
 reduced.addEventListener("change", syncCard);
 
-let toastTimer = 0;
-let hideTimer = 0;
-
-function showToast(message, type = "info") {
-  clearTimeout(toastTimer);
-  clearTimeout(hideTimer);
-  toastEl.textContent = message;
-  toastEl.className = `toast ${type}`;
-  toastEl.hidden = false;
-  void toastEl.offsetWidth;
-  toastEl.classList.add("on");
-  toastTimer = setTimeout(() => {
-    toastEl.classList.remove("on");
-    hideTimer = setTimeout(() => {
-      toastEl.hidden = true;
-    }, 500);
-  }, 2600);
-}
-
-const queue = initQueue(card.querySelector(".player"), showToast);
+const queue = initQueue(card.querySelector(".player"));
 
 function syncQueue() {
   queue.playing(!!spotify || !!lastfm?.nowPlaying);
