@@ -169,6 +169,18 @@ h1 {
   opacity: 1;
 }
 
+.player {
+  position: relative;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--fill);
+}
+
+body[data-stage] .player {
+  background: none;
+}
+
 .track {
   position: relative;
   display: grid;
@@ -178,23 +190,174 @@ h1 {
   align-items: center;
   width: 100%;
   padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--fill);
+  border-radius: inherit;
   color: inherit;
   text-decoration: none;
   text-align: left;
-  transition: background 0.2s, filter 0.2s;
+  transition: filter 0.2s;
 }
 
-body[data-stage] .track,
-body[data-stage] .track[href]:hover {
-  background: none;
+.player:has(.queue:not([hidden])) .track {
+  padding-right: 46px;
 }
 
 .track[href]:hover {
-  background: rgba(255, 255, 255, 0.07);
   filter: brightness(1.3);
+}
+
+.queue {
+  position: absolute;
+  top: 20px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.queue[hidden] {
+  display: none;
+}
+
+.queue svg {
+  width: 17px;
+  height: 17px;
+}
+
+.queue:hover,
+.queue[aria-expanded="true"] {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.find {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 10px 10px;
+}
+
+.find[hidden] {
+  display: none;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.find input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--fill);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+
+body[data-stage] .find input {
+  background: none;
+}
+
+.find input::placeholder {
+  color: var(--muted);
+}
+
+.send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s, opacity 0.2s;
+}
+
+.send svg {
+  width: 15px;
+  height: 15px;
+}
+
+.send:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.send:not(:disabled):hover {
+  color: var(--text);
+  border-color: rgba(var(--accent-3-rgb), 0.6);
+  background: rgba(var(--accent-3-rgb), 0.14);
+}
+
+.results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.results:empty {
+  display: none;
+}
+
+.results button {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 9px;
+  align-items: center;
+  width: 100%;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.results button:hover,
+.results button[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.results img {
+  grid-row: 1 / 3;
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
+  background: var(--line);
+}
+
+.results .n,
+.results .a {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.results .a {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .track:not([href]) {
@@ -238,6 +401,10 @@ body[data-stage] .track[href]:hover {
 
 .track[data-spotify] .progress {
   display: block;
+}
+
+.player:has(.find:not([hidden])) .progress {
+  border-radius: 0;
 }
 
 .track .progress::before {
@@ -352,6 +519,49 @@ nav svg {
   width: 21px;
   height: 21px;
   fill: currentColor;
+}
+
+#ts {
+  position: fixed;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  z-index: 2;
+  margin: 0;
+  padding: 11px 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(13, 13, 19, 0.72);
+  -webkit-backdrop-filter: var(--glass);
+  backdrop-filter: var(--glass);
+  color: var(--text);
+  font-size: 14px;
+  max-width: calc(100vw - 48px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+
+.toast[hidden] {
+  display: none;
+}
+
+.toast.on {
+  opacity: 1;
+}
+
+body[data-stage] .toast {
+  border-color: transparent;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 :focus-visible {

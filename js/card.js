@@ -4,12 +4,20 @@ import { glowShader } from "./glow.js";
 const RAD = Math.PI / 180;
 const PERSPECTIVE = new DOMMatrix("perspective(900px)");
 const RADIUS = 24;
+const TOAST_RADIUS = 14;
 const DEPTH = 0.03;
 const BEVEL = 0.34;
 
+const paths = (w, h, radius) => {
+  const thickness = DEPTH * Math.max(w, h);
+  const inset = BEVEL * thickness * 0.45;
+  const soften = BEVEL * (DEPTH * (Math.max(w, h) - 2 * inset)) * 0.625;
+  return slabSvg(w, h, Math.max(radius - inset - soften, 1), inset);
+};
+
 let lib;
 
-export async function initCard(canvas, card) {
+export async function initCard(canvas, card, toast) {
   lib ??= await import("./vendor/glass-object.js");
 
   let w = 0;
@@ -55,6 +63,26 @@ export async function initCard(canvas, card) {
   if (!scene) return null;
 
   scene.add("card", {});
+  scene.add("toast", { still: true });
+  scene.setFade("toast", 0);
+
+  let toastOn = false;
+  let toastFade = 0;
+  let toastKey = "";
+
+  function shapeToast() {
+    const tw = toast.offsetWidth;
+    const th = toast.offsetHeight;
+    if (!tw || !th) return;
+    const r = toast.getBoundingClientRect();
+    const key = `${tw},${th},${Math.round(r.left)},${Math.round(r.top)},${Math.round(originX)},${Math.round(originY)}`;
+    if (key === toastKey) return;
+    toastKey = key;
+    scene.update("toast", {
+      src: paths(tw, th, TOAST_RADIUS),
+      offset: [r.left + tw / 2 - originX, r.top + th / 2 - originY],
+    });
+  }
 
   function place() {
     const nw = card.offsetWidth;
@@ -71,7 +99,9 @@ export async function initCard(canvas, card) {
       originX = nx;
       originY = ny;
       scene.focus(originX - innerWidth / 2, originY - innerHeight / 2);
+      toastKey = "";
     }
+    if (toastOn) shapeToast();
   }
 
   function compose() {
@@ -82,6 +112,11 @@ export async function initCard(canvas, card) {
     const k = 1 - Math.exp(-10 * dt);
     tiltX += (targetX - tiltX) * k;
     tiltY += (targetY - tiltY) * k;
+    const target = toastOn ? 1 : 0;
+    if (Math.abs(target - toastFade) > 0.002) {
+      toastFade += (target - toastFade) * (1 - Math.exp(-12 * dt));
+      scene.setFade("toast", toastFade);
+    }
     scene.setTilt("card", -tiltX * RAD, tiltY * RAD);
     scene.scene.updateMatrixWorld();
 
@@ -103,10 +138,7 @@ export async function initCard(canvas, card) {
     const key = `${w},${h}`;
     if (key === shaped || !w || !h) return;
     shaped = key;
-    const thickness = DEPTH * Math.max(w, h);
-    const inset = BEVEL * thickness * 0.45;
-    const soften = BEVEL * (DEPTH * (Math.max(w, h) - 2 * inset)) * 0.625;
-    scene.update("card", { src: slabSvg(w, h, RADIUS - inset - soften, inset) });
+    scene.update("card", { src: paths(w, h, RADIUS) });
   }
 
   let pending = 0;
@@ -128,6 +160,10 @@ export async function initCard(canvas, card) {
     },
     setHue(hue) {
       scene.setBackgroundUniform("u_hue", hue);
+    },
+    setToast(on) {
+      toastOn = on;
+      if (on) shapeToast();
     },
     ready() {
       canvas.classList.add("on");

@@ -4,10 +4,12 @@ import { watchTrack } from "./lastfm.js";
 import { hourHue } from "./tint.js";
 import { stepSpring } from "./spring.js";
 import { initCard } from "./card.js";
+import { initQueue } from "./queue.js";
 
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
 const stage = document.getElementById("stage");
+const toastEl = document.querySelector(".toast");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
 let stopGlow = null;
@@ -107,7 +109,7 @@ async function syncCard() {
     return;
   }
   if (slab) return;
-  const next = await initCard(stage, card).catch(() => null);
+  const next = await initCard(stage, card, toastEl).catch(() => null);
   if (!next) return;
   if (reduced.matches) {
     next.stop();
@@ -121,6 +123,28 @@ async function syncCard() {
 
 addEventListener("load", syncCard, { once: true });
 reduced.addEventListener("change", syncCard);
+
+let toastTimer = 0;
+let hideTimer = 0;
+
+function showToast(message) {
+  clearTimeout(toastTimer);
+  clearTimeout(hideTimer);
+  toastEl.textContent = message;
+  toastEl.hidden = false;
+  void toastEl.offsetWidth;
+  toastEl.classList.add("on");
+  slab?.setToast(true);
+  toastTimer = setTimeout(() => {
+    toastEl.classList.remove("on");
+    slab?.setToast(false);
+    hideTimer = setTimeout(() => {
+      toastEl.hidden = true;
+    }, 300);
+  }, 2600);
+}
+
+const queue = initQueue(card.querySelector(".player"), showToast);
 
 const avatar = card.querySelector(".avatar");
 const avatarImg = avatar.querySelector("img");
@@ -180,6 +204,7 @@ watchPresence("79427255851298816", d => {
   }
   renderStatus(d);
   spotify = d.listening_to_spotify ? d.spotify : null;
+  queue.playing(!!spotify);
   renderTrack(spotify ? fromSpotify(spotify) : lastfm);
 });
 
