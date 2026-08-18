@@ -69,7 +69,7 @@ export function initQueue(player) {
       b.append(img, name, artist);
       b.addEventListener("click", () => {
         pick(i);
-        input.value = t.name;
+        input.value = `${t.name} - ${t.artist}`;
         input.focus();
       });
       li.append(b);
@@ -83,11 +83,12 @@ export function initQueue(player) {
   }
 
   function autofill(q) {
-    const top = results[0]?.name;
-    if (deleting || !top || input.value !== q) return;
-    if (!top.toLowerCase().startsWith(q.toLowerCase()) || top.length === q.length) return;
-    input.value = top;
-    input.setSelectionRange(q.length, top.length);
+    const t = results[0];
+    if (deleting || !t || input.value !== q) return;
+    if (!t.name.toLowerCase().startsWith(q.toLowerCase())) return;
+    const full = `${t.name} - ${t.artist}`;
+    input.value = full;
+    input.setSelectionRange(q.length, full.length);
   }
 
   async function search(q) {
@@ -144,13 +145,14 @@ export function initQueue(player) {
     e.preventDefault();
     const n = results.length;
     pick((((active + (e.key === "ArrowDown" ? 1 : -1)) % n) + n) % n);
-    input.value = results[active].name;
+    input.value = `${results[active].name} - ${results[active].artist}`;
   });
 
   form.addEventListener("submit", async e => {
     e.preventDefault();
     if (!picked) return;
     const track = picked;
+    list.replaceChildren();
     send.disabled = true;
     send.dataset.state = "sending";
     send.removeAttribute("title");
