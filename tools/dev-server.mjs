@@ -51,7 +51,7 @@ const server = createServer(async (req, res) => {
       for (const [k, v] of Object.entries(req.headers)) if (typeof v === "string") headers.set(k, v);
       headers.set("cf-connecting-ip", req.socket.remoteAddress || "127.0.0.1");
       const request = new Request(url.href, { method: req.method, headers, body: body?.length ? body : undefined });
-      const out = await handler({ request, env });
+      const out = await handler({ request, env: loadEnv() });
       const text = await out.text();
       const h = {}; out.headers.forEach((v, k) => h[k] = v);
       res.writeHead(out.status, h).end(text);
