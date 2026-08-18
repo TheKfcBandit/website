@@ -273,6 +273,11 @@ body[data-stage] .find input {
   color: var(--muted);
 }
 
+.find input::selection {
+  background: transparent;
+  color: var(--muted);
+}
+
 .send {
   flex: none;
   display: grid;
