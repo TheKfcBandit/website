@@ -10,15 +10,15 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const PORT = Number(process.env.PORT) || 5050;
 
-const env = {};
-if (existsSync(join(root, ".dev.vars"))) {
-  for (const line of readFileSync(join(root, ".dev.vars"), "utf8").split(/\r?\n/)) {
+function loadEnv() {
+  const env = {};
+  const f = join(root, ".dev.vars");
+  if (!existsSync(f)) return env;
+  for (const line of readFileSync(f, "utf8").split(/\r?\n/)) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
     if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, "");
   }
-  console.log("loaded .dev.vars:", Object.keys(env).join(", ") || "(empty)");
-} else {
-  console.log("no .dev.vars — /api routes will run but Spotify calls will fail");
+  return env;
 }
 
 const types = { ".html":"text/html", ".js":"text/javascript", ".css":"text/css",
