@@ -50,7 +50,7 @@ export async function onRequestPost({ request, env }) {
     method: "POST",
     headers: { authorization: `Bearer ${key}` },
   });
-  if (res.status === 204) return new Response(null, { status: 204 });
+  if (res.ok) return new Response(null, { status: 204 });
   if (res.status === 404) return fail(409, "not-playing");
   if (res.status === 403) return fail(409, "forbidden");
   if (res.status === 429) return fail(429, "slow-down");
