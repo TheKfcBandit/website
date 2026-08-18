@@ -147,7 +147,7 @@ export function initQueue(player, toast) {
     e.preventDefault();
     if (!picked) return;
     const track = picked;
-    send.disabled = true;
+    open(false);
     try {
       const token = await getToken();
       const res = await fetch("/api/queue", {
@@ -155,17 +155,15 @@ export function initQueue(player, toast) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ uri: track.uri, token }),
       });
-      if (res.status === 204) {
-        toast(`queued ${track.name}`);
-        open(false);
+      if (res.ok) {
+        toast(`queued ${track.name}`, "ok");
         return;
       }
       const data = await res.json().catch(() => ({}));
-      toast(MESSAGES[data.error] ?? "couldn't queue that");
+      toast(MESSAGES[data.error] ?? "couldn't queue that", "error");
     } catch {
-      toast("couldn't queue that");
+      toast("couldn't queue that", "error");
     }
-    send.disabled = !picked;
   });
 
   return {

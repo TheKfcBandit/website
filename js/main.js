@@ -109,7 +109,7 @@ async function syncCard() {
     return;
   }
   if (slab) return;
-  const next = await initCard(stage, card, toastEl).catch(() => null);
+  const next = await initCard(stage, card).catch(() => null);
   if (!next) return;
   if (reduced.matches) {
     next.stop();
@@ -127,20 +127,19 @@ reduced.addEventListener("change", syncCard);
 let toastTimer = 0;
 let hideTimer = 0;
 
-function showToast(message) {
+function showToast(message, type = "info") {
   clearTimeout(toastTimer);
   clearTimeout(hideTimer);
   toastEl.textContent = message;
+  toastEl.className = `toast ${type}`;
   toastEl.hidden = false;
   void toastEl.offsetWidth;
   toastEl.classList.add("on");
-  slab?.setToast(true);
   toastTimer = setTimeout(() => {
     toastEl.classList.remove("on");
-    slab?.setToast(false);
     hideTimer = setTimeout(() => {
       toastEl.hidden = true;
-    }, 300);
+    }, 500);
   }, 2600);
 }
 
