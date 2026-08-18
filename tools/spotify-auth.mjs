@@ -1,25 +1,56 @@
-// One-time local helper. Prints a Spotify refresh token for the queue endpoint.
-// Nothing is sent anywhere except to Spotify, and nothing is written to disk.
+// One-time helper to get a Spotify refresh token for the queue endpoint.
+// Reads SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET from .dev.vars (or prompts if
+// run interactively), runs the OAuth consent flow on 127.0.0.1:8888, and writes
+// SPOTIFY_REFRESH_TOKEN back into .dev.vars. Nothing is sent anywhere but Spotify.
 //
 //   node tools/spotify-auth.mjs
 //
-// Add http://127.0.0.1:8888/callback as a redirect URI on your app first.
+// Add http://127.0.0.1:8888/callback as a redirect URI on your Spotify app first.
 
 import { createServer } from "node:http";
 import { createInterface } from "node:readline/promises";
 import { randomBytes } from "node:crypto";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
+const root = join(fileURLToPath(new URL(".", import.meta.url)), "..");
+const varsPath = join(root, ".dev.vars");
 const PORT = 8888;
 const REDIRECT = `http://127.0.0.1:${PORT}/callback`;
 const SCOPE = "user-modify-playback-state";
 
-const rl = createInterface({ input: process.stdin, output: process.stdout });
-const id = (await rl.question("client id: ")).trim();
-const secret = (await rl.question("client secret: ")).trim();
-rl.close();
+function loadVars() {
+  const e = {};
+  if (existsSync(varsPath)) {
+    for (const l of readFileSync(varsPath, "utf8").split(/\r?\n/)) {
+      const m = l.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+      if (m) e[m[1]] = m[2].replace(/^["']|["']$/g, "");
+    }
+  }
+  return e;
+}
 
+function saveVar(key, value) {
+  let lines = existsSync(varsPath) ? readFileSync(varsPath, "utf8").split(/\r?\n/) : [];
+  let found = false;
+  lines = lines.map(l => (new RegExp(`^\\s*${key}\\s*=`).test(l) ? (found = true, `${key}=${value}`) : l));
+  if (!found) lines.push(`${key}=${value}`);
+  writeFileSync(varsPath, lines.filter((l, i) => l !== "" || i < lines.length - 1).join("\n").replace(/\n+$/, "") + "\n");
+}
+
+const vars = loadVars();
+let id = vars.SPOTIFY_CLIENT_ID;
+let secret = vars.SPOTIFY_CLIENT_SECRET;
+
+if ((!id || !secret) && process.stdin.isTTY) {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  if (!id) id = (await rl.question("client id: ")).trim();
+  if (!secret) secret = (await rl.question("client secret: ")).trim();
+  rl.close();
+}
 if (!id || !secret) {
-  console.error("both are required");
+  console.error("missing SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET in .dev.vars");
   process.exit(1);
 }
 
@@ -32,9 +63,8 @@ const authorize = `https://accounts.spotify.com/authorize?${new URLSearchParams(
   state,
 })}`;
 
-console.log("\nopen this and approve:\n");
-console.log(authorize);
-console.log("\nwaiting for the callback...");
+console.log("AUTHORIZE_URL " + authorize);
+console.log("waiting for approval...");
 
 const code = await new Promise((resolve, reject) => {
   const server = createServer((req, res) => {
@@ -43,15 +73,15 @@ const code = await new Promise((resolve, reject) => {
       res.writeHead(404).end();
       return;
     }
-    const done = (message, value, error) => {
-      res.writeHead(200, { "content-type": "text/plain" }).end(message);
+    const done = (msg, val, err) => {
+      res.writeHead(200, { "content-type": "text/plain" }).end(msg);
       server.close();
-      error ? reject(error) : resolve(value);
+      err ? reject(err) : resolve(val);
     };
     if (url.searchParams.get("state") !== state) return done("state mismatch", null, new Error("state mismatch"));
     const err = url.searchParams.get("error");
     if (err) return done(`denied: ${err}`, null, new Error(err));
-    done("done, close this tab", url.searchParams.get("code"));
+    done("done — you can close this tab", url.searchParams.get("code"));
   });
   server.listen(PORT, "127.0.0.1");
 });
@@ -62,22 +92,24 @@ const res = await fetch("https://accounts.spotify.com/api/token", {
     "content-type": "application/x-www-form-urlencoded",
     authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString("base64")}`,
   },
-  body: new URLSearchParams({
-    grant_type: "authorization_code",
-    code,
-    redirect_uri: REDIRECT,
-  }),
+  body: new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: REDIRECT }),
 });
 
 if (!res.ok) {
-  console.error(`\ntoken exchange failed: ${res.status}`);
+  console.error(`token exchange failed: ${res.status}`);
   console.error(await res.text());
   process.exit(1);
 }
 
 const data = await res.json();
-console.log("\nadd these to cloudflare pages -> settings -> environment variables:\n");
-console.log(`SPOTIFY_CLIENT_ID      ${id}`);
-console.log(`SPOTIFY_CLIENT_SECRET  ${secret}`);
-console.log(`SPOTIFY_REFRESH_TOKEN  ${data.refresh_token}`);
-console.log("\nthe refresh token lasts about six months, then rerun this.");
+saveVar("SPOTIFY_CLIENT_ID", id);
+saveVar("SPOTIFY_CLIENT_SECRET", secret);
+saveVar("SPOTIFY_REFRESH_TOKEN", data.refresh_token);
+console.log("REFRESH_TOKEN_SAVED");
+
+if (process.stdout.isTTY) {
+  console.log("\nsaved to .dev.vars. for Cloudflare, add these three to the website project:");
+  console.log("SPOTIFY_CLIENT_ID      " + id);
+  console.log("SPOTIFY_CLIENT_SECRET  " + secret);
+  console.log("SPOTIFY_REFRESH_TOKEN  " + data.refresh_token);
+}
