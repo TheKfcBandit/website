@@ -88,6 +88,28 @@ body[data-stage] #glow {
   backdrop-filter: var(--glass);
 }
 
+/* the side edges are the flip handle */
+.card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  border-radius: inherit;
+  clip-path: polygon(0 0, 26px 0, 26px 100%, 0 100%, 0 0, 100% 0, 100% 100%, calc(100% - 26px) 100%, calc(100% - 26px) 0, 100% 0);
+  cursor: grab;
+}
+
+.card[data-grabbing]::after {
+  cursor: grabbing;
+}
+
+.card[data-grabbing] {
+  user-select: none;
+}
+
 /* faces sit on the glass surfaces, not the mid-plane; --face-z is half the slab depth */
 .face {
   display: flex;
@@ -116,7 +138,8 @@ body[data-stage] .card::before {
   display: none;
 }
 
-.card > * {
+.card > *,
+.face > * {
   margin: 0;
 }
 
@@ -193,6 +216,48 @@ h1 {
   opacity: 1;
 }
 
+.icon {
+  display: grid;
+  place-items: center;
+  width: var(--icon-size, 28px);
+  height: var(--icon-size, 28px);
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.icon svg {
+  width: var(--icon-glyph, 17px);
+  height: var(--icon-glyph, 17px);
+}
+
+.icon:hover,
+.icon[aria-expanded="true"] {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.icon[hidden] {
+  display: none;
+}
+
+.queue {
+  position: absolute;
+  top: 20px;
+  right: 10px;
+}
+
+.close {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  --icon-size: 26px;
+  --icon-glyph: 15px;
+}
+
 .player {
   position: relative;
   width: 100%;
@@ -227,37 +292,6 @@ body[data-stage] .player {
 
 .track[href]:hover {
   filter: brightness(1.3);
-}
-
-.queue {
-  position: absolute;
-  top: 20px;
-  right: 10px;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-  transition: color 0.2s, background 0.2s;
-}
-
-.queue[hidden] {
-  display: none;
-}
-
-.queue svg {
-  width: 17px;
-  height: 17px;
-}
-
-.queue:hover,
-.queue[aria-expanded="true"] {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.07);
 }
 
 .find {
@@ -613,58 +647,6 @@ nav svg {
   width: 21px;
   height: 21px;
   fill: currentColor;
-}
-
-.flip-open {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border: 0;
-  border-radius: 9px;
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-  transition: color 0.2s, background 0.2s;
-}
-
-.flip-open:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.flip-open svg {
-  width: 17px;
-  height: 17px;
-}
-
-.flip-back {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-  transition: color 0.2s, background 0.2s;
-}
-
-.flip-back:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.flip-back svg {
-  width: 15px;
-  height: 15px;
 }
 
 .face.back h2 {

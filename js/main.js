@@ -146,8 +146,46 @@ function flip(on) {
   if (!on) note.reset();
 }
 
-card.querySelector(".flip-open").addEventListener("click", () => flip(true));
-card.querySelector(".flip-back").addEventListener("click", () => flip(false));
+card.querySelector(".close").addEventListener("click", () => flip(false));
+
+// grab either side edge and drag across to turn the card over
+const EDGE = 26;
+let grab = null;
+
+card.addEventListener("pointerdown", e => {
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  if (e.target.closest("a, button, input, textarea")) return;
+  const r = card.getBoundingClientRect();
+  const fromLeft = e.clientX - r.left;
+  const fromRight = r.right - e.clientX;
+  const edge = Math.min(fromLeft, fromRight);
+  if (edge > EDGE) return;
+  grab = { x: e.clientX, from: fromLeft < fromRight ? 1 : -1, w: r.width, moved: false };
+  card.setPointerCapture(e.pointerId);
+  card.dataset.grabbing = "";
+});
+
+card.addEventListener("pointermove", e => {
+  if (!grab) return;
+  const dx = (e.clientX - grab.x) * grab.from;
+  if (Math.abs(dx) > 3) grab.moved = true;
+  slab?.dragFlip(Math.max(0, Math.min(1, dx / (grab.w * 0.55))));
+});
+
+function release() {
+  if (!grab) return;
+  const settled = slab ? slab.endDrag() : null;
+  if (!slab && grab.moved) flip(!flipped);
+  else if (settled !== null) {
+    flipped = settled;
+    if (!flipped) note.reset();
+  }
+  grab = null;
+  delete card.dataset.grabbing;
+}
+
+card.addEventListener("pointerup", release);
+card.addEventListener("pointercancel", release);
 
 addEventListener("keydown", e => {
   if (e.key === "Escape" && flipped) flip(false);

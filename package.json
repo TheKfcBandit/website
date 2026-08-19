@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:vendor": "esbuild js/vendor/glass-object.entry.js --bundle --format=esm --minify --outfile=js/vendor/glass-object.js",
+    "build:vendor": "node tools/build-vendor.mjs",
     "dev": "node tools/dev-server.mjs"
   },
   "devDependencies": {

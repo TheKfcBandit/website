@@ -37,6 +37,7 @@ export async function initCard(canvas, card) {
   let last = 0;
   const spin = { x: 0, v: 0 };
   let spinTarget = 0;
+  let dragging = false;
   let onFace = null;
   let facing = 1;
 
@@ -102,7 +103,7 @@ export async function initCard(canvas, card) {
     const k = 1 - Math.exp(-10 * dt);
     tiltX += (targetX - tiltX) * k;
     tiltY += (targetY - tiltY) * k;
-    if (spin.x !== spinTarget || spin.v) stepSpring(spin, spinTarget, 90, 18, dt, 0.4, 0.2);
+    if (!dragging && (spin.x !== spinTarget || spin.v)) stepSpring(spin, spinTarget, 90, 18, dt, 0.4, 0.2);
 
     // the face pointing at the camera flips sign as the card passes 90deg
     const next = Math.cos(spin.x * RAD) < 0 ? -1 : 1;
@@ -152,7 +153,21 @@ export async function initCard(canvas, card) {
       targetY = y;
     },
     setFlip(on) {
+      dragging = false;
       spinTarget = on ? 180 : 0;
+    },
+    dragFlip(t) {
+      dragging = true;
+      const from = spinTarget >= 90 ? 180 : 0;
+      spin.x = from + (from ? -t : t) * 180;
+      spin.v = 0;
+    },
+    endDrag() {
+      if (!dragging) return null;
+      dragging = false;
+      const on = Math.cos(spin.x * RAD) < 0;
+      spinTarget = on ? 180 : 0;
+      return on;
     },
     onFace(fn) {
       onFace = fn;

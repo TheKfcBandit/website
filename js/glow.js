@@ -27,10 +27,15 @@ float sdCard(vec2 p) {
   float d = min(
     min(seg(p, u_quad[0], u_quad[1]), seg(p, u_quad[1], u_quad[2])),
     min(seg(p, u_quad[2], u_quad[3]), seg(p, u_quad[3], u_quad[0])));
-  float s = min(
-    min(side(u_quad[0], u_quad[1], p), side(u_quad[1], u_quad[2], p)),
-    min(side(u_quad[2], u_quad[3], p), side(u_quad[3], u_quad[0], p)));
-  return (s > 0.0 ? -d : d) - u_radius;
+  float a = side(u_quad[0], u_quad[1], p);
+  float b = side(u_quad[1], u_quad[2], p);
+  float c = side(u_quad[2], u_quad[3], p);
+  float e = side(u_quad[3], u_quad[0], p);
+  // flipping the card mirrors the quad, so test for a consistent sign rather
+  // than a positive one, otherwise the inside/outside sense inverts past 90deg
+  float lo = min(min(a, b), min(c, e));
+  float hi = max(max(a, b), max(c, e));
+  return ((lo > 0.0 || hi < 0.0) ? -d : d) - u_radius;
 }
 
 vec3 hue2rgb(float h) {
