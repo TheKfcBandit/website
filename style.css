@@ -73,8 +73,8 @@ body[data-stage] #glow {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
   text-align: center;
+  transform-style: preserve-3d;
 }
 
 .card::before {
@@ -86,6 +86,30 @@ body[data-stage] #glow {
   background: var(--fill);
   -webkit-backdrop-filter: var(--glass);
   backdrop-filter: var(--glass);
+}
+
+/* faces sit on the glass surfaces, not the mid-plane; --face-z is half the slab depth */
+.face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  transform: translateZ(var(--face-z, 6px));
+}
+
+.face.back {
+  position: absolute;
+  inset: 36px 32px;
+  width: auto;
+  gap: 10px;
+  transform: rotateY(180deg) translateZ(var(--face-z, 6px));
+}
+
+.card[data-face="back"] .face.front,
+.card:not([data-face="back"]) .face.back {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 body[data-stage] .card::before {
@@ -568,6 +592,14 @@ nav a:hover {
   filter: brightness(1.3);
 }
 
+/* muted brand tints, hover only — nav svg is fill: currentColor */
+nav a[data-brand="discord"]:hover { color: #7d8cf0; }
+nav a[data-brand="youtube"]:hover { color: #e05a5a; }
+nav a[data-brand="steam"]:hover { color: #9aa8bd; }
+nav a[data-brand="spotify"]:hover { color: #4fc97a; }
+nav a[data-brand="xbox"]:hover { color: #5ab55a; }
+nav a[data-brand="lastfm"]:hover { color: #e05a5a; }
+
 nav a:hover::after {
   opacity: 1;
 }
@@ -581,6 +613,141 @@ nav svg {
   width: 21px;
   height: 21px;
   fill: currentColor;
+}
+
+.flip-open {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.flip-open:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.flip-open svg {
+  width: 17px;
+  height: 17px;
+}
+
+.flip-back {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.flip-back:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.flip-back svg {
+  width: 15px;
+  height: 15px;
+}
+
+.face.back h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.note {
+  --ctl-h: 37px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+/* honeypot: kept inside the card bounds — the back face is mirrored, so an
+   off-screen left offset would land off-screen right and add page overflow */
+.note input[name="website"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  background: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.note .who,
+.note textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--fill);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+
+body[data-stage] .note .who,
+body[data-stage] .note textarea {
+  background: none;
+}
+
+.note .who {
+  height: var(--ctl-h);
+}
+
+.note textarea {
+  min-height: 92px;
+  resize: none;
+}
+
+.note .who::placeholder,
+.note textarea::placeholder {
+  color: var(--muted);
+}
+
+.note .who:focus,
+.note textarea:focus {
+  outline: none;
+  border-color: rgba(var(--accent-rgb), 0.6);
+}
+
+.note .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.note .count {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.note .count[data-low] {
+  color: #ff6b6b;
 }
 
 #ts {

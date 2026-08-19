@@ -1,5 +1,6 @@
 import { slabSvg, cssMatrix, projectQuad, offsetIn } from "./scene.js";
 import { glowShader } from "./glow.js";
+import { stepSpring } from "./spring.js";
 
 const RAD = Math.PI / 180;
 const PERSPECTIVE = new DOMMatrix("perspective(900px)");
@@ -12,6 +13,12 @@ const paths = (w, h, radius) => {
   const inset = BEVEL * thickness * 0.45;
   const soften = BEVEL * (DEPTH * (Math.max(w, h) - 2 * inset)) * 0.625;
   return slabSvg(w, h, Math.max(radius - inset - soften, 1), inset);
+};
+
+// half the extruded slab depth, so a face sits on the glass surface rather than mid-plane
+const faceZ = (w, h) => {
+  const inset = BEVEL * (DEPTH * Math.max(w, h)) * 0.45;
+  return (DEPTH * (Math.max(w, h) - 2 * inset)) / 2;
 };
 
 let lib;
@@ -28,6 +35,10 @@ export async function initCard(canvas, card) {
   let targetX = 0;
   let targetY = 0;
   let last = 0;
+  const spin = { x: 0, v: 0 };
+  let spinTarget = 0;
+  let onFace = null;
+  let facing = 1;
 
   const scene = lib.createGlassScene({ canvas }, {
     backgroundFragment: glowShader,
@@ -72,6 +83,8 @@ export async function initCard(canvas, card) {
     if (nw !== w || nh !== h) {
       w = nw;
       h = nh;
+      // faces must track the slab surface immediately; the geometry rebuild can lag
+      card.style.setProperty("--face-z", `${faceZ(w, h).toFixed(2)}px`);
       schedule();
     }
     if (nx !== originX || ny !== originY) {
@@ -89,7 +102,15 @@ export async function initCard(canvas, card) {
     const k = 1 - Math.exp(-10 * dt);
     tiltX += (targetX - tiltX) * k;
     tiltY += (targetY - tiltY) * k;
-    scene.setTilt("card", -tiltX * RAD, tiltY * RAD);
+    if (spin.x !== spinTarget || spin.v) stepSpring(spin, spinTarget, 90, 18, dt, 0.4, 0.2);
+
+    // the face pointing at the camera flips sign as the card passes 90deg
+    const next = Math.cos(spin.x * RAD) < 0 ? -1 : 1;
+    if (next !== facing) {
+      facing = next;
+      onFace?.(facing < 0);
+    }
+    scene.setTilt("card", -tiltX * RAD, (tiltY + spin.x) * RAD);
     scene.scene.updateMatrixWorld();
 
     const m = cssMatrix(scene.nodeMatrix("card"), scene.pxPerUnit);
@@ -129,6 +150,12 @@ export async function initCard(canvas, card) {
     setTilt(x, y) {
       targetX = x;
       targetY = y;
+    },
+    setFlip(on) {
+      spinTarget = on ? 180 : 0;
+    },
+    onFace(fn) {
+      onFace = fn;
     },
     setHue(hue) {
       scene.setBackgroundUniform("u_hue", hue);

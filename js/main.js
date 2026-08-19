@@ -5,6 +5,7 @@ import { hourHue } from "./tint.js";
 import { stepSpring } from "./spring.js";
 import { initCard } from "./card.js";
 import { initQueue } from "./queue.js";
+import { initNote } from "./note.js";
 
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
@@ -116,12 +117,43 @@ async function syncCard() {
   }
   slab = next;
   document.body.dataset.stage = "";
+  slab.onFace(showBack);
   slab.ready();
   syncGlow();
 }
 
 addEventListener("load", syncCard, { once: true });
 reduced.addEventListener("change", syncCard);
+
+const front = card.querySelector(".face.front");
+const back = card.querySelector(".face.back");
+const note = initNote(back);
+
+let flipped = false;
+
+function showBack(on) {
+  card.dataset.face = on ? "back" : "front";
+  front.inert = on;
+  back.inert = !on;
+  if (on) back.querySelector("textarea").focus({ preventScroll: true });
+}
+
+function flip(on) {
+  if (on === flipped) return;
+  flipped = on;
+  if (slab) slab.setFlip(on);
+  else showBack(on);
+  if (!on) note.reset();
+}
+
+card.querySelector(".flip-open").addEventListener("click", () => flip(true));
+card.querySelector(".flip-back").addEventListener("click", () => flip(false));
+
+addEventListener("keydown", e => {
+  if (e.key === "Escape" && flipped) flip(false);
+});
+
+showBack(false);
 
 const queue = initQueue(card.querySelector(".player"));
 
