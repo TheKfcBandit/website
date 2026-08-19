@@ -280,6 +280,11 @@ body[data-stage] .find input {
   color: var(--muted);
 }
 
+.find input:focus {
+  outline: none;
+  border-color: rgba(var(--accent-rgb), 0.6);
+}
+
 .send {
   flex: none;
   display: grid;
@@ -329,16 +334,23 @@ body[data-stage] .find input {
   cursor: default;
 }
 
+.send:not([data-state]):not(:disabled),
+.send[data-state="sending"] {
+  color: var(--bg);
+  border-color: transparent;
+  background: var(--muted);
+}
+
 .send[data-state="ok"] {
-  color: #4ade80;
-  border-color: rgba(74, 222, 128, 0.45);
-  background: rgba(74, 222, 128, 0.14);
+  color: var(--bg);
+  border-color: transparent;
+  background: #4ade80;
 }
 
 .send[data-state="err"] {
-  color: #ff6b6b;
-  border-color: rgba(255, 107, 107, 0.45);
-  background: rgba(255, 107, 107, 0.14);
+  color: var(--bg);
+  border-color: transparent;
+  background: #ff6b6b;
 }
 
 .send[data-state="sending"] .i-send {
@@ -350,9 +362,7 @@ body[data-stage] .find input {
 }
 
 .send:not([data-state]):not(:disabled):hover {
-  color: var(--text);
-  border-color: rgba(var(--accent-3-rgb), 0.6);
-  background: rgba(var(--accent-3-rgb), 0.14);
+  background: var(--text);
 }
 
 .results {
