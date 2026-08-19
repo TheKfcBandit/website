@@ -5,7 +5,6 @@ import { hourHue } from "./tint.js";
 import { stepSpring } from "./spring.js";
 import { initCard } from "./card.js";
 import { initQueue } from "./queue.js";
-import { initNote } from "./note.js";
 
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
@@ -117,81 +116,12 @@ async function syncCard() {
   }
   slab = next;
   document.body.dataset.stage = "";
-  slab.onFace(showBack);
   slab.ready();
   syncGlow();
 }
 
 addEventListener("load", syncCard, { once: true });
 reduced.addEventListener("change", syncCard);
-
-const front = card.querySelector(".face.front");
-const back = card.querySelector(".face.back");
-const note = initNote(back);
-
-let flipped = false;
-
-function showBack(on) {
-  card.dataset.face = on ? "back" : "front";
-  front.inert = on;
-  back.inert = !on;
-  if (on) back.querySelector("textarea").focus({ preventScroll: true });
-}
-
-function flip(on) {
-  if (on === flipped) return;
-  flipped = on;
-  if (slab) slab.setFlip(on);
-  else showBack(on);
-  if (!on) note.reset();
-}
-
-card.querySelector(".close").addEventListener("click", () => flip(false));
-
-// grab either side edge and drag across to turn the card over
-const EDGE = 26;
-let grab = null;
-
-card.addEventListener("pointerdown", e => {
-  if (e.pointerType === "mouse" && e.button !== 0) return;
-  if (e.target.closest("a, button, input, textarea")) return;
-  const r = card.getBoundingClientRect();
-  const fromLeft = e.clientX - r.left;
-  const fromRight = r.right - e.clientX;
-  const edge = Math.min(fromLeft, fromRight);
-  if (edge > EDGE) return;
-  grab = { x: e.clientX, from: fromLeft < fromRight ? 1 : -1, w: r.width, moved: false };
-  card.setPointerCapture(e.pointerId);
-  card.dataset.grabbing = "";
-});
-
-card.addEventListener("pointermove", e => {
-  if (!grab) return;
-  const dx = (e.clientX - grab.x) * grab.from;
-  if (Math.abs(dx) > 3) grab.moved = true;
-  slab?.dragFlip(Math.max(0, Math.min(1, dx / (grab.w * 0.55))));
-});
-
-function release() {
-  if (!grab) return;
-  const settled = slab ? slab.endDrag() : null;
-  if (!slab && grab.moved) flip(!flipped);
-  else if (settled !== null) {
-    flipped = settled;
-    if (!flipped) note.reset();
-  }
-  grab = null;
-  delete card.dataset.grabbing;
-}
-
-card.addEventListener("pointerup", release);
-card.addEventListener("pointercancel", release);
-
-addEventListener("keydown", e => {
-  if (e.key === "Escape" && flipped) flip(false);
-});
-
-showBack(false);
 
 const queue = initQueue(card.querySelector(".player"));
 

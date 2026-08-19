@@ -483,6 +483,7 @@ export function createGlassScene(elements, options = {}) {
     if (!reducedMotion) {
       elapsed += delta * config.floatSpeed;
       for (const node of nodes.values()) {
+        if (node.spec.still) continue;
         node.float.rotation.x = (Math.cos(elapsed / 4) / 8) * config.rotationIntensity;
         node.float.rotation.y = (Math.sin(elapsed / 4) / 8) * config.rotationIntensity;
         node.float.rotation.z = (Math.sin(elapsed / 4) / 20) * config.rotationIntensity;
@@ -533,6 +534,13 @@ export function createGlassScene(elements, options = {}) {
     setTilt(id, rx, ry) {
       const node = nodes.get(id);
       if (node) node.tilt.rotation.set(rx, ry, 0);
+    },
+    setFade(id, value) {
+      const node = nodes.get(id);
+      if (!node) return;
+      node.anchor.visible = value > 0.01;
+      node.material.transparent = value < 0.999;
+      node.material.opacity = value;
     },
     nodeMatrix(id) {
       const node = nodes.get(id);
