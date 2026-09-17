@@ -1,8 +1,8 @@
 // The site's existing glow, expressed in Three's shader nodes so the same
 // material compiles to WGSL (WebGPU) and GLSL (WebGL2 fallback).
-import { MeshBasicNodeMaterial, Vector2, SRGBColorSpace } from "three/webgpu";
+import { MeshBasicNodeMaterial, Vector2 } from "three/webgpu";
 import { Fn, uniform, uv, vec2, vec3, vec4, float, min, max, clamp, length,
-  dot, sin, exp, fract, mod, abs, mix, atan, select, colorSpaceToWorking } from "three/tsl";
+  dot, sin, exp, fract, mod, abs, mix, atan, select } from "three/tsl";
 
 export function createGlowMaterial(values) {
   const uniforms = {};
@@ -37,8 +37,9 @@ export function createGlowMaterial(values) {
     const glow = select(d.greaterThan(0), exp(d.negate().div(u.u_scale.mul(140))), u.u_fill);
     const intensity = glow.mul(sin(u.u_time.mul(0.6)).mul(0.06).add(0.6)).mul(float(1).sub(lum.mul(0.42)));
     const noise = fract(sin(dot(pos.add(fract(u.u_time)), vec2(12.9898, 78.233))).mul(43758.5453));
-    const color = vec4(vec3(0.031, 0.031, 0.043).add(rim.mul(intensity)).add(noise.sub(0.5).div(128)), 1);
-    return colorSpaceToWorking(color, SRGBColorSpace);
+    // Match the original raw GLSL output both on screen and in the glass's
+    // transmission sample. The renderer deliberately leaves this unconverted.
+    return vec4(vec3(0.031, 0.031, 0.043).add(rim.mul(intensity)).add(noise.sub(0.5).div(128)), 1);
   })();
   return {
     material,

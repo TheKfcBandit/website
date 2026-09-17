@@ -1,5 +1,6 @@
 // Adapted from Canvas UI Glass Object; see SOURCE.md for provenance.
 import * as THREE from "three/webgpu";
+import { output, renderOutput } from "three/tsl";
 import { SVGLoader } from "three/addons/loaders/SVGLoader.js";
 import { toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
 import { createGlowMaterial } from "./glow-material.js";
@@ -160,6 +161,17 @@ function shapesFromSvg(text) {
   return shapes;
 }
 
+export function createGlassMaterial() {
+  const material = new THREE.MeshPhysicalNodeMaterial({
+    color: 0xffffff, metalness: 0, transmission: 1, clearcoatRoughness: 0.06, specularIntensity: 1,
+  });
+  // The original scene applied ACES + sRGB to the glass, but wrote the glow
+  // shader's colours directly. Keep that per-material output here: decoding the
+  // glow before transmission makes the same tinted glass look nearly opaque.
+  material.outputNode = renderOutput(output, THREE.ACESFilmicToneMapping, THREE.SRGBColorSpace);
+  return material;
+}
+
 export async function createGlassScene(elements, options = {}) {
   const { canvas } = elements;
   const config = { ...DEFAULTS, ...options };
@@ -172,7 +184,10 @@ export async function createGlassScene(elements, options = {}) {
     if (renderer?.hasInitialized()) renderer.dispose();
     return null;
   }
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  // Output conversion is handled by the glass material. A global conversion
+  // would also change the backdrop and the light sampled through the glass.
+  renderer.toneMapping = THREE.NoToneMapping;
+  renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
@@ -395,9 +410,7 @@ export async function createGlassScene(elements, options = {}) {
     scene.add(anchor);
     const node = {
       id, anchor, tilt, float, fit, spec,
-      material: new THREE.MeshPhysicalMaterial({
-        color: 0xffffff, metalness: 0, transmission: 1, clearcoatRoughness: 0.06, specularIntensity: 1,
-      }),
+      material: createGlassMaterial(),
       model: null, shapes: null, src: null, token: 0, builtDepth: -1, builtBevel: -1,
     };
     nodes.set(id, node);

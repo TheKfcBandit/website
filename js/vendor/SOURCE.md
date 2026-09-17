@@ -26,6 +26,11 @@ the existing Canvas UI fork, not an unmodified copy of Canvas UI's separate
 `vgpu` WebGPU implementation. The renderer is initialized before use; loss or
 failure returns to the interactive HTML card, and hidden tabs stop rendering.
 
+The glow retains its original raw shader colours, including in the transmission
+sample. ACES tone mapping and sRGB conversion happen on the glass material only,
+matching the original renderer's per-material output. Applying a global output
+transform or decoding the glow first darkens the light visible through the card.
+
 No live-DOM capture is needed: HTML controls are projected over the actual
 extruded mesh. Both layers use the same transform and camera perspective.
 
