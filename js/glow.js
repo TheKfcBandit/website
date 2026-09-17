@@ -16,7 +16,7 @@ uniform float u_fill;
 
 float seg(vec2 p, vec2 a, vec2 b) {
   vec2 pa = p - a, ba = b - a;
-  return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0));
+  return length(pa - ba * clamp(dot(pa, ba) / max(dot(ba, ba), 0.000001), 0.0, 1.0));
 }
 
 float side(vec2 a, vec2 b, vec2 p) {
@@ -27,10 +27,11 @@ float sdCard(vec2 p) {
   float d = min(
     min(seg(p, u_quad[0], u_quad[1]), seg(p, u_quad[1], u_quad[2])),
     min(seg(p, u_quad[2], u_quad[3]), seg(p, u_quad[3], u_quad[0])));
-  float s = min(
-    min(side(u_quad[0], u_quad[1], p), side(u_quad[1], u_quad[2], p)),
-    min(side(u_quad[2], u_quad[3], p), side(u_quad[3], u_quad[0], p)));
-  return (s > 0.0 ? -d : d) - u_radius;
+  vec4 sides = vec4(side(u_quad[0], u_quad[1], p), side(u_quad[1], u_quad[2], p),
+    side(u_quad[2], u_quad[3], p), side(u_quad[3], u_quad[0], p));
+  float lo = min(min(sides.x, sides.y), min(sides.z, sides.w));
+  float hi = max(max(sides.x, sides.y), max(sides.z, sides.w));
+  return (lo > 0.0 || hi < 0.0 ? -d : d) - u_radius;
 }
 
 vec3 hue2rgb(float h) {

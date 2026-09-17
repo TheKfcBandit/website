@@ -16,13 +16,17 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://ws.audioscrobbler.com">
 <link rel="stylesheet" href="style.css">
-<noscript><style>.track, .status { display: none }</style></noscript>
+<noscript><style>.player, .status, .flip-open, .back { display: none }</style></noscript>
 <script type="module" src="js/main.js"></script>
 </head>
 <body>
 <canvas id="glow" aria-hidden="true"></canvas>
 <canvas id="stage" aria-hidden="true"></canvas>
-<main class="card">
+<main class="card card--flippable" data-side="front">
+<section class="face front" aria-label="Profile">
+  <button class="flip-open face-button" type="button" aria-label="Leave me a note" aria-controls="note-side" aria-expanded="false" title="Leave me a note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>
+  </button>
   <span class="avatar" data-status="offline">
     <img src="assets/avatar.jpg" alt="" width="96" height="96" draggable="false" decoding="async">
   </span>
@@ -33,7 +37,6 @@
       <img alt="" width="48" height="48">
       <span class="name"></span>
       <span class="sub"><span class="artist"></span><span class="when"></span><span class="bars"><i></i><i></i><i></i></span></span>
-      <i class="progress"></i>
     </a>
     <button class="queue" type="button" aria-label="Add a song to my queue" aria-expanded="false" aria-controls="queue-search" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h12M3 12h6m-6 6h4m7-6v8m4-4h-8"/></svg>
@@ -48,6 +51,7 @@
       <ul class="results" id="queue-results" aria-label="Search results"></ul>
       <p class="queue-feedback" id="queue-feedback" role="status" aria-live="polite"></p>
     </form>
+    <i class="progress" aria-hidden="true"></i>
   </div>
   <nav aria-label="profiles">
     <a href="https://discord.gg/W8Bx8MSH" aria-label="Discord" title="Discord">
@@ -69,6 +73,21 @@
       <svg viewBox="0 0 24 24"><path d="m10.584 17.21-.88-2.392s-1.43 1.594-3.573 1.594c-1.897 0-3.244-1.649-3.244-4.288 0-3.382 1.704-4.591 3.381-4.591 2.42 0 3.189 1.567 3.849 3.574l.88 2.749c.88 2.666 2.529 4.81 7.285 4.81 3.409 0 5.718-1.044 5.718-3.793 0-2.227-1.265-3.381-3.63-3.931l-1.758-.385c-1.21-.275-1.567-.77-1.567-1.595 0-.934.742-1.484 1.952-1.484 1.32 0 2.034.495 2.144 1.677l2.749-.33c-.22-2.474-1.924-3.492-4.729-3.492-2.474 0-4.893.935-4.893 3.932 0 1.87.907 3.051 3.189 3.601l1.87.44c1.402.33 1.869.907 1.869 1.704 0 1.017-.99 1.43-2.86 1.43-2.776 0-3.93-1.457-4.59-3.464l-.907-2.75c-1.155-3.573-2.997-4.893-6.653-4.893C2.144 5.333 0 7.89 0 12.233c0 4.18 2.144 6.434 5.993 6.434 3.106 0 4.591-1.457 4.591-1.457"/></svg>
     </a>
   </nav>
+</section>
+<section class="face back" id="note-side" aria-labelledby="note-title" aria-hidden="true" inert>
+  <button class="flip-close face-button" type="button" aria-label="Back to profile" title="Back to profile">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m10 5-7 7 7 7M3 12h18"/></svg>
+  </button>
+  <h2 id="note-title">Leave me a note</h2>
+  <p class="note-intro">Straight to my Discord.</p>
+  <form class="note" aria-describedby="note-feedback">
+    <input class="honeypot" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <label for="note-message">Your message</label>
+    <textarea id="note-message" name="note" maxlength="280" required placeholder="Say hi…" rows="4"></textarea>
+    <button class="note-send" type="submit">Send note</button>
+    <p class="note-feedback" id="note-feedback" role="status" aria-live="polite"></p>
+  </form>
+</section>
 </main>
 <div id="ts"></div>
 </body>

@@ -26,6 +26,7 @@ export async function initCard(canvas, card, onFailure = () => {}) {
   let tiltY = 0;
   let targetX = 0;
   let targetY = 0;
+  let flip = 0;
   let last = 0;
   let stopped = false;
   let wanted = false;
@@ -96,6 +97,7 @@ export async function initCard(canvas, card, onFailure = () => {}) {
     tiltX += (targetX - tiltX) * k;
     tiltY += (targetY - tiltY) * k;
     scene.setTilt("card", -tiltX * RAD, tiltY * RAD);
+    scene.setFlip("card", flip * RAD);
     scene.scene.updateMatrixWorld();
 
     const m = cssMatrix(scene.nodeMatrix("card"), scene.pxPerUnit);
@@ -153,6 +155,7 @@ export async function initCard(canvas, card, onFailure = () => {}) {
   }
 
   return {
+    setFlip(angle) { flip = angle; },
     setTilt(x, y) {
       targetX = x;
       targetY = y;

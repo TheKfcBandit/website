@@ -3,5 +3,7 @@
 SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
 SPOTIFY_REFRESH_TOKEN=
-# From your existing Turnstile widget (note form). Only needed to test /api/queue.
+# Shared by the queue and note form.
 TURNSTILE_SECRET=
+# Existing Discord incoming webhook used by the note form.
+DISCORD_WEBHOOK_URL=

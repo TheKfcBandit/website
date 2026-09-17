@@ -403,13 +403,15 @@ export async function createGlassScene(elements, options = {}) {
     const anchor = new THREE.Group();
     const tilt = new THREE.Group();
     const float = new THREE.Group();
+    const turn = new THREE.Group();
     const fit = new THREE.Group();
     anchor.add(tilt);
     tilt.add(float);
-    float.add(fit);
+    float.add(turn);
+    turn.add(fit);
     scene.add(anchor);
     const node = {
-      id, anchor, tilt, float, fit, spec,
+      id, anchor, tilt, float, turn, fit, spec,
       material: createGlassMaterial(),
       model: null, shapes: null, src: null, token: 0, builtDepth: -1, builtBevel: -1,
     };
@@ -538,6 +540,10 @@ export async function createGlassScene(elements, options = {}) {
       const node = nodes.get(id);
       if (node) node.tilt.rotation.set(rx, ry, 0);
     },
+    setFlip(id, angle) {
+      const node = nodes.get(id);
+      if (node) node.turn.rotation.y = angle;
+    },
     setFade(id, value) {
       const node = nodes.get(id);
       if (!node) return;
@@ -548,7 +554,7 @@ export async function createGlassScene(elements, options = {}) {
     nodeMatrix(id) {
       const node = nodes.get(id);
       if (!node) return null;
-      return scratch.multiplyMatrices(node.tilt.matrix, node.float.matrix).elements;
+      return scratch.multiplyMatrices(node.tilt.matrix, node.float.matrix).multiply(node.turn.matrix).elements;
     },
     focus(x, y) {
       if (x === principalX && y === principalY) return;

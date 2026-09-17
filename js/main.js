@@ -5,6 +5,8 @@ import { hourHue } from "./tint.js";
 import { stepSpring } from "./spring.js";
 import { initCard } from "./card.js";
 import { initQueue } from "./queue.js";
+import { initFlip } from "./flip.js";
+import { initNote } from "./note.js";
 
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
@@ -15,6 +17,13 @@ let stopGlow = null;
 let slab = null;
 let spotify = null;
 let lastfm = null;
+let flipAngle = 0;
+
+function rotateCard(angle) {
+  flipAngle = angle;
+  if (slab) slab.setFlip(angle);
+  else card.style.transform = `perspective(900px) rotateY(${angle}deg)`;
+}
 
 const glow = () => slab ?? stopGlow;
 
@@ -105,6 +114,7 @@ async function syncCard() {
     slab?.stop();
     slab = null;
     delete document.body.dataset.stage;
+    rotateCard(flipAngle);
     syncGlow();
     return;
   }
@@ -112,15 +122,18 @@ async function syncCard() {
   cardPending = true;
   const next = await initCard(stage, card, () => {
     slab = null;
+    rotateCard(flipAngle);
     syncGlow();
   }).catch(() => null);
   cardPending = false;
   if (!next) return;
   if (reduced.matches) {
     next.stop();
+    rotateCard(flipAngle);
     return;
   }
   slab = next;
+  slab.setFlip(flipAngle);
   slab.ready();
   syncGlow();
 }
@@ -129,7 +142,14 @@ if (document.readyState === "complete") syncCard();
 else addEventListener("load", syncCard, { once: true });
 reduced.addEventListener("change", syncCard);
 
-const queue = initQueue(card.querySelector(".player"));
+const player = card.querySelector(".player");
+const queue = initQueue(player);
+const note = initNote(card.querySelector(".note"));
+initFlip(card, {
+  reduced,
+  onRotate: rotateCard,
+  onStart(back) { if (back) queue.close(); else note.cancel(); },
+});
 
 function syncQueue() {
   queue.playing(!!spotify || !!lastfm?.nowPlaying);
@@ -154,12 +174,11 @@ const trackArtist = track.querySelector(".artist");
 const trackWhen = track.querySelector(".when");
 
 function renderTrack(t) {
-  track.style.removeProperty("--p");
+  player.style.removeProperty("--p");
   if (!t) {
     track.removeAttribute("href");
     track.removeAttribute("data-live");
     track.removeAttribute("data-spotify");
-    track.style.removeProperty("--p");
     trackImg.removeAttribute("src");
     trackName.textContent = "";
     trackArtist.textContent = "";
@@ -207,5 +226,5 @@ watchTrack("thekfcbandit", "537af0ef3262086893a19328d00f2e75", t => {
 setInterval(() => {
   if (!spotify) return;
   const { start, end } = spotify.timestamps;
-  track.style.setProperty("--p", Math.min((Date.now() - start) / (end - start), 1));
+  player.style.setProperty("--p", Math.min((Date.now() - start) / (end - start), 1));
 }, 1000);

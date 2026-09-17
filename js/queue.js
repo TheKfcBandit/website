@@ -195,6 +195,7 @@ export function initQueue(player, { verify = getToken } = {}) {
   });
 
   return {
+    close() { open(false); },
     playing(on) {
       button.hidden = !on;
       if (!on && !form.hidden) open(false);
