@@ -1,0 +1,7 @@
+# Copy to .dev.vars and fill in. .dev.vars is gitignored — never commit real values.
+# Get the Spotify values from tools/spotify-auth.mjs.
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
+SPOTIFY_REFRESH_TOKEN=
+# From your existing Turnstile widget (note form). Only needed to test /api/queue.
+TURNSTILE_SECRET=

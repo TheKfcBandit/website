@@ -1,0 +1,32 @@
+name: Check V2
+
+on:
+  pull_request:
+    branches: [main, remaster]
+  push:
+    branches: [remaster, codex/remaster-v2]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Verify the committed browser bundle is current
+        run: git diff --exit-code -- js/vendor/glass-object.js
+      - name: Deploy V2 preview
+        if: github.event_name == 'push' && github.ref == 'refs/heads/remaster'
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=website --branch=v2-preview

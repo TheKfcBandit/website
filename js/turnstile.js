@@ -4,14 +4,25 @@ let widgetId;
 let pending;
 let loader;
 
+function finish(error, token) {
+  if (!pending) return;
+  const current = pending;
+  pending = null;
+  clearTimeout(current.timeout);
+  if (error) current.reject(error);
+  else current.resolve(token);
+}
+
 function load() {
   loader ??= new Promise((ok, fail) => {
     window.tsReady = () => {
       widgetId = turnstile.render("#ts", {
         sitekey: SITEKEY,
         execution: "execute",
-        callback: token => pending?.resolve(token),
-        "error-callback": () => pending?.reject(new Error()),
+        callback: token => finish(null, token),
+        "error-callback": () => finish(new Error("verification failed")),
+        "expired-callback": () => finish(new Error("verification expired")),
+        "timeout-callback": () => finish(new Error("verification timed out")),
       });
       ok();
     };
@@ -29,10 +40,15 @@ function load() {
 
 export async function getToken() {
   await load();
+  if (pending) throw new Error("verification already pending");
   return new Promise((resolve, reject) => {
     pending = { resolve, reject };
-    setTimeout(() => reject(new Error()), 30000);
-    turnstile.reset(widgetId);
-    turnstile.execute(widgetId);
+    pending.timeout = setTimeout(() => finish(new Error("verification timed out")), 30000);
+    try {
+      turnstile.reset(widgetId);
+      turnstile.execute(widgetId);
+    } catch (error) {
+      finish(error);
+    }
   });
 }
