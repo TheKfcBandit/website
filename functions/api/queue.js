@@ -40,10 +40,12 @@ export async function onRequestPost({ request, env }) {
   } catch {
     return fail(400, "bad-request");
   }
-  if (!body || typeof body !== "object" || !URI.test(String(body.uri ?? ""))) return fail(400, "bad-uri");
+  if (!body || typeof body.uri !== "string" || !URI.test(body.uri)) return fail(400, "bad-uri");
   if (!env.SPOTIFY_CLIENT_ID || !env.SPOTIFY_CLIENT_SECRET || !env.SPOTIFY_REFRESH_TOKEN) return fail(503, "reauth-needed");
   if (!(await verifyTurnstile(body.token, request, env))) return fail(403, "unverified");
-  if (throttled(request, "queue", 60000)) return fail(429, "slow-down");
+  try {
+    if (await throttled(request, env, "queue", 60000)) return fail(429, "slow-down");
+  } catch { return fail(503, "temporarily-unavailable"); }
 
   try {
     const key = await userToken(env);

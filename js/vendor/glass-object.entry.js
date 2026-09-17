@@ -11,7 +11,6 @@ const DEFAULTS = {
   backgroundUniforms: null,
   antialias: true,
   pixelRatio: 2,
-  transmissionScale: 0.5,
   ior: 1.75,
   thickness: 4,
   roughness: 0.25,
@@ -403,13 +402,15 @@ export async function createGlassScene(elements, options = {}) {
     const anchor = new THREE.Group();
     const tilt = new THREE.Group();
     const float = new THREE.Group();
+    const turn = new THREE.Group();
     const fit = new THREE.Group();
     anchor.add(tilt);
     tilt.add(float);
-    float.add(fit);
+    float.add(turn);
+    turn.add(fit);
     scene.add(anchor);
     const node = {
-      id, anchor, tilt, float, fit, spec,
+      id, anchor, tilt, float, turn, fit, spec,
       material: createGlassMaterial(),
       model: null, shapes: null, src: null, token: 0, builtDepth: -1, builtBevel: -1,
     };
@@ -538,30 +539,20 @@ export async function createGlassScene(elements, options = {}) {
       const node = nodes.get(id);
       if (node) node.tilt.rotation.set(rx, ry, 0);
     },
-    setFade(id, value) {
+    setFlip(id, angle) {
       const node = nodes.get(id);
-      if (!node) return;
-      node.anchor.visible = value > 0.01;
-      node.material.transparent = value < 0.999;
-      node.material.opacity = value;
+      if (node) node.turn.rotation.y = angle;
     },
     nodeMatrix(id) {
       const node = nodes.get(id);
       if (!node) return null;
-      return scratch.multiplyMatrices(node.tilt.matrix, node.float.matrix).elements;
+      return scratch.multiplyMatrices(node.tilt.matrix, node.float.matrix).multiply(node.turn.matrix).elements;
     },
     focus(x, y) {
       if (x === principalX && y === principalY) return;
       principalX = x;
       principalY = y;
       applyProjection();
-    },
-    setOptions(next) {
-      const previousHighlight = config.highlight;
-      Object.assign(config, next);
-      if (config.highlight !== previousHighlight) envDirty = true;
-      applyOptions();
-      startLoop();
     },
     resize,
     destroy() {
@@ -572,7 +563,7 @@ export async function createGlassScene(elements, options = {}) {
       document.removeEventListener("visibilitychange", onVisibility);
       motionQuery.removeEventListener("change", onMotionChange);
       for (const node of nodes.values()) {
-        if (node.model) disposeObject(node.model);
+        if (node.model) disposeObject(node.model, node.material);
         node.material.dispose();
       }
       nodes.clear();

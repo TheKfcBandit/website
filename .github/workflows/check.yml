@@ -1,10 +1,10 @@
-name: Check V2
+name: Check and preview
 
 on:
   pull_request:
-    branches: [main, remaster]
+    branches: [main]
   push:
-    branches: [remaster, codex/remaster-v2]
+    branches: ['codex/**']
 
 permissions:
   contents: read
@@ -23,10 +23,27 @@ jobs:
       - run: npm run check
       - name: Verify the committed browser bundle is current
         run: git diff --exit-code -- js/vendor/glass-object.js
-      - name: Deploy V2 preview
-        if: github.event_name == 'push' && github.ref == 'refs/heads/remaster'
+      - name: Deploy shared request limits
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/codex/')
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=website --branch=v2-preview
+          command: deploy --config workers/limits/wrangler.json --env preview
+      - name: Read existing Pages configuration
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/codex/')
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages download config website --force
+      - name: Add shared request-limit binding
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/codex/')
+        run: python3 tools/configure-limits.py preview
+      - name: Deploy branch preview
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/codex/')
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=website --branch=${{ github.ref_name }}

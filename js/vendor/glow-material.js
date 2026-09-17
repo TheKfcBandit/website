@@ -25,9 +25,11 @@ export function createGlowMaterial(values) {
     const q = [u.u_quad0, u.u_quad1, u.u_quad2, u.u_quad3];
     const distance = min(min(segment(pos, q[0], q[1]), segment(pos, q[1], q[2])),
       min(segment(pos, q[2], q[3]), segment(pos, q[3], q[0])));
-    const s = min(min(side(q[0], q[1], pos), side(q[1], q[2], pos)),
-      min(side(q[2], q[3], pos), side(q[3], q[0], pos)));
-    const d = select(s.greaterThan(0), distance.negate(), distance).sub(u.u_radius).toVar();
+    // The projected corners reverse winding when the card shows its back.
+    const sides = [side(q[0], q[1], pos), side(q[1], q[2], pos), side(q[2], q[3], pos), side(q[3], q[0], pos)];
+    const lo = min(min(sides[0], sides[1]), min(sides[2], sides[3]));
+    const hi = max(max(sides[0], sides[1]), max(sides[2], sides[3]));
+    const d = select(lo.greaterThan(0).or(hi.lessThan(0)), distance.negate(), distance).sub(u.u_radius).toVar();
     const delta = pos.sub(u.u_center);
     const a = atan(delta.y, delta.x).add(u.u_time.mul(0.02)).toVar();
     const hue = u.u_hue.add(sin(a).mul(0.06)).add(sin(a.mul(2).add(1)).mul(0.022));

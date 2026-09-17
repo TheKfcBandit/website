@@ -97,6 +97,101 @@ body[data-stage] .card::before {
   margin: 0;
 }
 
+.card--flippable {
+  display: grid;
+  padding: 0;
+  align-items: stretch;
+  transform-style: preserve-3d;
+}
+
+.face {
+  position: relative;
+  grid-area: 1 / 1;
+  min-width: 0;
+  padding: 36px 32px;
+  border-radius: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.face > * { margin: 0; }
+.face[inert] { pointer-events: none; }
+.back { transform: rotateY(180deg); justify-content: center; }
+
+.icon-button.flip-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+}
+
+.flip-edge {
+  position: absolute;
+  top: 32px;
+  bottom: 32px;
+  width: 20px;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.flip-edge[data-edge="left"] { left: 0; }
+.flip-edge[data-edge="right"] { right: 0; }
+.flip-edge:focus-visible { outline-offset: -3px; }
+.card[data-dragging],
+.card[data-dragging] * { cursor: grabbing; user-select: none; }
+
+.back h2 { font-size: 20px; font-weight: 600; }
+
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+}
+
+.note label { color: var(--muted); font-size: 13px; }
+.note textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--fill);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.note textarea::placeholder { color: var(--muted); }
+.note-send {
+  padding: 9px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.note-send:hover { filter: brightness(1.15); }
+.note-send:disabled { opacity: 0.5; cursor: default; }
+.note-feedback { min-height: 1.5em; margin: 0; color: var(--muted); font-size: 12px; }
+.honeypot { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; clip-path: inset(50%); overflow: hidden; }
+
 .avatar {
   --ring: #80848e;
   display: inline-block;
@@ -176,6 +271,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--fill);
+  overflow: clip;
 }
 
 body[data-stage] .player {
@@ -205,6 +301,8 @@ body[data-stage] .player {
 .track[href]:hover {
   filter: brightness(1.3);
 }
+
+.track:focus-visible { outline-offset: -3px; }
 
 .queue {
   position: absolute;
@@ -450,23 +548,23 @@ body[data-stage] .find input {
   content: " · ";
 }
 
-.track .progress {
+.player > .progress {
   display: none;
   position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 4px;
+  left: 0;
+  right: 0;
+  bottom: 0;
   height: 3px;
   overflow: hidden;
-  border-radius: 999px;
   background: var(--line);
+  pointer-events: none;
 }
 
-.track[data-spotify] .progress {
+.player:has(.track[data-spotify]) > .progress {
   display: block;
 }
 
-.track .progress::before {
+.player > .progress::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -534,8 +632,11 @@ nav {
   gap: 4px;
 }
 
-nav a {
+.icon-button {
   position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
   display: grid;
   place-items: center;
   width: 40px;
@@ -547,7 +648,7 @@ nav a {
   transition: color 0.2s, background 0.2s, filter 0.2s;
 }
 
-nav a::after {
+.icon-button::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -558,14 +659,14 @@ nav a::after {
   pointer-events: none;
 }
 
-nav a:hover {
+.icon-button:hover {
   color: var(--text);
   background: rgba(255, 255, 255, 0.07);
   transform: translate(var(--pull-x, 0px), calc(var(--pull-y, 0px) - 2px));
   filter: brightness(1.3);
 }
 
-nav a:focus-visible {
+.icon-button:focus-visible {
   color: var(--text);
   background: rgba(255, 255, 255, 0.07);
 }
@@ -589,24 +690,27 @@ nav a:focus-visible {
 @media (max-width: 420px) {
   body { padding: 20px 16px; }
   .card { padding: 32px 20px; }
+  .card--flippable { padding: 0; }
+  .face { padding: 32px 20px; }
   .track { grid-template-columns: 40px minmax(0, 1fr); column-gap: 9px; }
   .track img { width: 40px; height: 40px; }
 }
 
-nav a:hover::after {
+.icon-button:hover::after {
   opacity: 1;
 }
 
-nav a:active {
+.icon-button:active {
   transform: translate(var(--pull-x, 0px), calc(var(--pull-y, 0px) - 2px)) scale(0.82);
   transition-duration: 0.06s;
 }
 
-nav svg {
+.icon-button svg {
   width: 21px;
   height: 21px;
-  fill: currentColor;
 }
+
+.icon-button svg:not([fill]) { fill: currentColor; }
 
 #ts {
   position: fixed;
@@ -622,7 +726,7 @@ nav svg {
     transition: none !important;
     animation: none !important;
   }
-  nav a,
-  nav a:hover,
-  nav a:active { transform: none; }
+  .icon-button,
+  .icon-button:hover,
+  .icon-button:active { transform: none; }
 }

@@ -9,23 +9,27 @@ function since(ts) {
 
 export function watchTrack(user, apiKey, onUpdate) {
   const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&limit=1&user=${user}&api_key=${apiKey}`;
+  let polling = false;
 
   async function poll() {
-    if (document.hidden) return;
+    if (document.hidden || polling) return;
+    polling = true;
     try {
-      const res = await fetch(url);
-      const track = (await res.json()).recenttracks.track[0];
-      if (!track) return;
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      if (!res.ok) throw new Error("track unavailable");
+      const track = (await res.json()).recenttracks?.track?.[0];
+      if (!track) { onUpdate(null); return; }
       const nowPlaying = track["@attr"]?.nowplaying === "true";
       onUpdate({
         name: track.name,
-        artist: track.artist["#text"],
+        artist: track.artist?.["#text"] ?? "",
         url: track.url,
-        art: track.image[2]?.["#text"],
+        art: track.image?.[2]?.["#text"],
         nowPlaying,
         ago: nowPlaying ? "now playing" : track.date ? since(track.date.uts * 1000) : "",
       });
-    } catch {}
+    } catch { onUpdate(null); }
+    finally { polling = false; }
   }
 
   poll();

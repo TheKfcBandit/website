@@ -1,0 +1,19 @@
+{
+  "name": "website-limits",
+  "main": "index.js",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "durable_objects": {
+    "bindings": [{ "name": "RATE_LIMITS", "class_name": "VisitorLimit" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["VisitorLimit"] }],
+  "env": {
+    "preview": {
+      "name": "website-limits-preview",
+      "durable_objects": {
+        "bindings": [{ "name": "RATE_LIMITS", "class_name": "VisitorLimit" }]
+      }
+    }
+  }
+}

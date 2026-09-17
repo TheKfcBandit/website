@@ -6,6 +6,7 @@ const MESSAGES = {
   unverified: "couldn't verify you — try again",
   "reauth-needed": "spotify needs reconnecting",
   forbidden: "spotify wouldn't take that",
+  "temporarily-unavailable": "queue is temporarily unavailable — try again shortly",
 };
 
 export function initQueue(player, { verify = getToken } = {}) {
@@ -96,7 +97,9 @@ export function initQueue(player, { verify = getToken } = {}) {
       let data = cache.get(q);
       if (!data) {
         controller = new AbortController();
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: controller.signal });
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, {
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30000)]),
+        });
         if (!res.ok) throw new Error(res.status === 429 ? "search-slow" : "search-failed");
         data = await res.json();
         if (!Array.isArray(data)) throw new Error("search-failed");
@@ -167,7 +170,7 @@ export function initQueue(player, { verify = getToken } = {}) {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ uri: track.uri, token }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(40000),
       });
       ok = res.ok;
       if (!ok) error = (await res.json().catch(() => ({}))).error;
@@ -195,6 +198,7 @@ export function initQueue(player, { verify = getToken } = {}) {
   });
 
   return {
+    close() { open(false); },
     playing(on) {
       button.hidden = !on;
       if (!on && !form.hidden) open(false);

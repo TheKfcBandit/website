@@ -15,24 +15,35 @@ function finish(error, token) {
 
 function load() {
   loader ??= new Promise((ok, fail) => {
-    window.tsReady = () => {
-      widgetId = turnstile.render("#ts", {
-        sitekey: SITEKEY,
-        execution: "execute",
-        callback: token => finish(null, token),
-        "error-callback": () => finish(new Error("verification failed")),
-        "expired-callback": () => finish(new Error("verification expired")),
-        "timeout-callback": () => finish(new Error("verification timed out")),
-      });
-      ok();
-    };
     const s = document.createElement("script");
-    s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=tsReady";
-    s.onerror = () => {
-      s.remove();
-      loader = null;
-      fail(new Error());
+    let settled = false;
+    const timeout = setTimeout(() => done(new Error("verification could not load")), 10000);
+    function done(error) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      if (error) {
+        s.remove();
+        loader = null;
+        fail(error);
+      } else ok();
+    }
+    window.tsReady = () => {
+      if (settled) return;
+      try {
+        widgetId = turnstile.render("#ts", {
+          sitekey: SITEKEY,
+          execution: "execute",
+          callback: token => finish(null, token),
+          "error-callback": () => finish(new Error("verification failed")),
+          "expired-callback": () => finish(new Error("verification expired")),
+          "timeout-callback": () => finish(new Error("verification timed out")),
+        });
+        done();
+      } catch (error) { done(error); }
     };
+    s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=tsReady";
+    s.onerror = () => done(new Error("verification could not load"));
     document.head.append(s);
   });
   return loader;

@@ -5,6 +5,8 @@ import { hourHue } from "./tint.js";
 import { stepSpring } from "./spring.js";
 import { initCard } from "./card.js";
 import { initQueue } from "./queue.js";
+import { initFlip } from "./flip.js";
+import { initNote } from "./note.js";
 
 const card = document.querySelector(".card");
 const canvas = document.getElementById("glow");
@@ -15,6 +17,13 @@ let stopGlow = null;
 let slab = null;
 let spotify = null;
 let lastfm = null;
+let flipAngle = 0;
+
+function rotateCard(angle) {
+  flipAngle = angle;
+  if (slab) slab.setFlip(angle);
+  else card.style.transform = `perspective(900px) rotateY(${angle}deg)`;
+}
 
 const glow = () => slab ?? stopGlow;
 
@@ -39,7 +48,8 @@ card.addEventListener("pointerenter", () => {
 });
 
 card.addEventListener("pointermove", e => {
-  if (e.pointerType !== "mouse" || reduced.matches || !hoverRect || !slab) return;
+  if (e.pointerType !== "mouse" || reduced.matches || !slab || card.hasAttribute("data-flipping")) return;
+  hoverRect ??= card.getBoundingClientRect();
   slab.setTilt(
     -((e.clientY - hoverRect.top) / hoverRect.height - 0.5) * 6,
     ((e.clientX - hoverRect.left) / hoverRect.width - 0.5) * 6
@@ -86,7 +96,7 @@ function pull(el, tx, ty) {
 
 addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse") return;
-  const el = e.target.closest?.("nav a");
+  const el = e.target.closest?.(".icon-button");
   if (el !== magnetic) {
     if (magnetic) pull(magnetic, 0, 0);
     magnetic = el;
@@ -99,12 +109,25 @@ addEventListener("pointermove", e => {
   pull(el, (e.clientX - r.left - r.width / 2) * 0.32, (e.clientY - r.top - r.height / 2) * 0.32);
 });
 
+function resetMagnets() {
+  for (const [el, m] of magnets) {
+    cancelAnimationFrame(m.raf);
+    el.style.removeProperty("--pull-x");
+    el.style.removeProperty("--pull-y");
+  }
+  magnets.clear();
+  magnetic = null;
+}
+addEventListener("blur", resetMagnets);
+reduced.addEventListener("change", resetMagnets);
+
 let cardPending = false;
 async function syncCard() {
   if (reduced.matches) {
     slab?.stop();
     slab = null;
     delete document.body.dataset.stage;
+    rotateCard(flipAngle);
     syncGlow();
     return;
   }
@@ -112,15 +135,18 @@ async function syncCard() {
   cardPending = true;
   const next = await initCard(stage, card, () => {
     slab = null;
+    rotateCard(flipAngle);
     syncGlow();
   }).catch(() => null);
   cardPending = false;
   if (!next) return;
   if (reduced.matches) {
     next.stop();
+    rotateCard(flipAngle);
     return;
   }
   slab = next;
+  slab.setFlip(flipAngle);
   slab.ready();
   syncGlow();
 }
@@ -129,7 +155,19 @@ if (document.readyState === "complete") syncCard();
 else addEventListener("load", syncCard, { once: true });
 reduced.addEventListener("change", syncCard);
 
-const queue = initQueue(card.querySelector(".player"));
+const player = card.querySelector(".player");
+const queue = initQueue(player);
+const note = initNote(card.querySelector(".note"));
+initFlip(card, {
+  reduced,
+  onRotate: rotateCard,
+  onStart(back) {
+    hoverRect = null;
+    slab?.setTilt(0, 0);
+    resetMagnets();
+    if (back) queue.close(); else note.cancel();
+  },
+});
 
 function syncQueue() {
   queue.playing(!!spotify || !!lastfm?.nowPlaying);
@@ -141,8 +179,9 @@ const statusText = card.querySelector(".status .text");
 const gameIcon = card.querySelector(".status .game");
 
 function renderStatus(d) {
-  const game = d.activities.find(a => a.type === 0);
-  statusText.textContent = d.activities.find(a => a.type === 4)?.state ?? "";
+  const activities = Array.isArray(d?.activities) ? d.activities : [];
+  const game = activities.find(a => a.type === 0);
+  statusText.textContent = activities.find(a => a.type === 4)?.state ?? "";
   gameIcon.hidden = !game;
   if (game) gameIcon.dataset.game = `playing ${game.name}`;
 }
@@ -154,12 +193,11 @@ const trackArtist = track.querySelector(".artist");
 const trackWhen = track.querySelector(".when");
 
 function renderTrack(t) {
-  track.style.removeProperty("--p");
+  updateProgress();
   if (!t) {
     track.removeAttribute("href");
     track.removeAttribute("data-live");
     track.removeAttribute("data-spotify");
-    track.style.removeProperty("--p");
     trackImg.removeAttribute("src");
     trackName.textContent = "";
     trackArtist.textContent = "";
@@ -188,12 +226,12 @@ function fromSpotify(s) {
 }
 
 watchPresence("79427255851298816", d => {
-  avatar.dataset.status = d.discord_status;
-  if (d.discord_user.avatar) {
+  avatar.dataset.status = d?.discord_status ?? "offline";
+  if (d?.discord_user?.avatar) {
     avatarImg.src = `https://cdn.discordapp.com/avatars/${d.discord_user.id}/${d.discord_user.avatar}.webp?size=160`;
   }
   renderStatus(d);
-  spotify = d.listening_to_spotify ? d.spotify : null;
+  spotify = d?.listening_to_spotify ? d.spotify : null;
   renderTrack(spotify ? fromSpotify(spotify) : lastfm);
   syncQueue();
 });
@@ -204,8 +242,20 @@ watchTrack("thekfcbandit", "537af0ef3262086893a19328d00f2e75", t => {
   syncQueue();
 });
 
+function updateProgress() {
+  const { start, end } = spotify?.timestamps ?? {};
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    player.style.removeProperty("--p");
+    return;
+  }
+  player.style.setProperty("--p", Math.max(0, Math.min((Date.now() - start) / (end - start), 1)));
+}
+
 setInterval(() => {
-  if (!spotify) return;
-  const { start, end } = spotify.timestamps;
-  track.style.setProperty("--p", Math.min((Date.now() - start) / (end - start), 1));
+  // Don't keep a completed song live indefinitely if presence stops updating.
+  if (spotify && Date.now() > spotify.timestamps?.end + 5000) {
+    spotify = null;
+    renderTrack(lastfm);
+    syncQueue();
+  } else updateProgress();
 }, 1000);

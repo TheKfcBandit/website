@@ -8,10 +8,10 @@ import { extname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "..");
-const PORT = Number(process.env.PORT) || 5050;
+const PORT = Number(process.env.PORT ?? 5050);
 
 function loadEnv() {
-  const env = {};
+  const env = { LOCAL_DEV: true };
   const f = join(root, ".dev.vars");
   if (!existsSync(f)) return env;
   for (const line of readFileSync(f, "utf8").split(/\r?\n/)) {
@@ -35,7 +35,9 @@ function collect(req) {
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
-  const path = decodeURIComponent(url.pathname);
+  let path;
+  try { path = decodeURIComponent(url.pathname); }
+  catch { res.writeHead(400).end("bad path"); return; }
 
   // API routes -> real functions/ modules
   if (path.startsWith("/api/")) {
@@ -44,7 +46,7 @@ const server = createServer(async (req, res) => {
     if (!existsSync(file)) { res.writeHead(404).end("no function"); return; }
     try {
       const mod = await import(pathToFileURL(file).href);
-      const handler = req.method === "GET" ? mod.onRequestGet : mod.onRequestPost;
+      const handler = { GET: mod.onRequestGet, POST: mod.onRequestPost }[req.method];
       if (!handler) { res.writeHead(405).end("no handler"); return; }
       const body = req.method === "GET" ? undefined : await collect(req);
       const headers = new Headers();
@@ -64,7 +66,9 @@ const server = createServer(async (req, res) => {
 
   // static files
   let p = path.endsWith("/") ? path + "index.html" : path;
-  if (p.includes("..")) { res.writeHead(403).end(); return; }
+  if (p.includes("..") || !(p === "/index.html" || p === "/404.html" || p === "/style.css" || p.startsWith("/assets/") || p.startsWith("/js/"))) {
+    res.writeHead(404).end("not found"); return;
+  }
   const file = join(root, p);
   try {
     if ((await stat(file)).isDirectory()) throw 0;
@@ -75,4 +79,4 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, "127.0.0.1", () => console.log(`dev server on http://127.0.0.1:${PORT}`));
+server.listen(PORT, "127.0.0.1", () => console.log(`dev server on http://127.0.0.1:${server.address().port}`));

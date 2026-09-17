@@ -4,7 +4,7 @@ void main() {
   gl_Position = vec4(a_pos, 0.0, 1.0);
 }`;
 
-export const glowShader = `
+const glowShader = `
 uniform vec2 u_resolution;
 uniform float u_time;
 uniform float u_scale;
@@ -16,7 +16,7 @@ uniform float u_fill;
 
 float seg(vec2 p, vec2 a, vec2 b) {
   vec2 pa = p - a, ba = b - a;
-  return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0));
+  return length(pa - ba * clamp(dot(pa, ba) / max(dot(ba, ba), 0.000001), 0.0, 1.0));
 }
 
 float side(vec2 a, vec2 b, vec2 p) {
@@ -27,10 +27,11 @@ float sdCard(vec2 p) {
   float d = min(
     min(seg(p, u_quad[0], u_quad[1]), seg(p, u_quad[1], u_quad[2])),
     min(seg(p, u_quad[2], u_quad[3]), seg(p, u_quad[3], u_quad[0])));
-  float s = min(
-    min(side(u_quad[0], u_quad[1], p), side(u_quad[1], u_quad[2], p)),
-    min(side(u_quad[2], u_quad[3], p), side(u_quad[3], u_quad[0], p)));
-  return (s > 0.0 ? -d : d) - u_radius;
+  vec4 sides = vec4(side(u_quad[0], u_quad[1], p), side(u_quad[1], u_quad[2], p),
+    side(u_quad[2], u_quad[3], p), side(u_quad[3], u_quad[0], p));
+  float lo = min(min(sides.x, sides.y), min(sides.z, sides.w));
+  float hi = max(max(sides.x, sides.y), max(sides.z, sides.w));
+  return (lo > 0.0 || hi < 0.0 ? -d : d) - u_radius;
 }
 
 vec3 hue2rgb(float h) {
@@ -75,24 +76,35 @@ export function initGlow(canvas, card) {
   let time = 0;
   let last = 0;
   let uniforms;
+  let program = null, buffer = null;
   let cardKey = "";
   const quad = new Float32Array(8);
   let hue = 0.66;
   let targetHue = 0.66;
   let hueSet = false;
 
+  function dispose() {
+    if (buffer) gl.deleteBuffer(buffer);
+    if (program) gl.deleteProgram(program);
+    buffer = program = null;
+  }
+
   function setup() {
-    const program = gl.createProgram();
+    dispose();
+    program = gl.createProgram();
     for (const [type, src] of [[gl.VERTEX_SHADER, vert], [gl.FRAGMENT_SHADER, frag]]) {
       const shader = gl.createShader(type);
       gl.shaderSource(shader, src);
       gl.compileShader(shader);
       gl.attachShader(program, shader);
+      // Attached shaders remain alive until the program is deleted.
+      gl.deleteShader(shader);
     }
     gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return false;
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { dispose(); return false; }
     gl.useProgram(program);
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     const pos = gl.getAttribLocation(program, "a_pos");
     gl.enableVertexAttribArray(pos);
@@ -169,7 +181,7 @@ export function initGlow(canvas, card) {
   }
 
   function start() {
-    if (raf) return;
+    if (raf || !program || document.hidden || gl.isContextLost()) return;
     last = performance.now();
     raf = requestAnimationFrame(frame);
   }
@@ -183,6 +195,8 @@ export function initGlow(canvas, card) {
   const onLost = e => {
     e.preventDefault();
     pause();
+    buffer = program = null;
+    canvas.classList.remove("on");
   };
   const onRestored = () => {
     if (setup()) start();
@@ -205,6 +219,7 @@ export function initGlow(canvas, card) {
     },
     stop() {
       pause();
+      dispose();
       removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVisibility);
       canvas.removeEventListener("webglcontextlost", onLost);

@@ -12,8 +12,17 @@ navigation, text selection, and Spotify search keep working normally.
 - WebGPU is preferred, with WebGL2 and then the regular HTML/CSS card as fallbacks.
   No experimental HTML-in-canvas flag is required. Reduced motion disables the
   animated card and glow. Background tabs pause rendering.
-- The flip/message-form UI is intentionally deferred. V1 remains in Git history
-  at `b1e6bc182b56ffcfd37526e4e33fb5950f4e18ba`.
+- Drag either edge in either direction to rotate through as many turns as you
+  like. Release velocity carries a flick onward before a damped spring settles on
+  a face; pausing before release removes the momentum. The edges have no visible
+  markers or tooltips, and also work with Enter/Space. Back or Escape returns to the profile.
+  The back arrow shares the social icons' magnetic hover and press styles.
+  Reduced motion switches sides on release without rotating.
+  The hidden face is inert, and keyboard focus follows the visible side.
+- Playback progress is clipped into the bottom edge of the player, including
+  when the queue search is expanded. Its timing still comes from Lanyard.
+  Disconnects and expired tracks fall back to Last.fm; presence-only updates
+  preserve progress. Failed Last.fm polls clear stale playback state.
 
 ## Development
 
@@ -37,7 +46,8 @@ See [Canvas UI source notes](js/vendor/SOURCE.md) for the renderer adaptation.
 
 Keep the existing Cloudflare Pages project, domains, and secrets. The queue needs
 `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN`, and
-`TURNSTILE_SECRET` in each environment where it is used. Production and preview
+`TURNSTILE_SECRET` in each environment where it is used. The note form uses the
+existing `DISCORD_WEBHOOK_URL` and the same `TURNSTILE_SECRET`. Production and preview
 secrets are configured independently. The Turnstile site key is in
 `js/turnstile.js`; its allowed hostnames must include the desired site/preview.
 Never commit actual secret values.
@@ -53,14 +63,29 @@ Pages Functions are compiled from the root `functions/` directory. If using
 Cloudflare's Git integration, set the build command to `npm run build` and output
 directory to `dist`. Committed root assets also remain usable by the existing
 zero-build integration. `_routes.json` limits Function invocation to `/api/*`.
-Pushes to `remaster` also run the checks and deploy the dedicated `v2-preview`
-branch on the same Pages project, leaving the production branch unchanged.
+Pushes to `codex/**` run the checks and deploy a preview for that branch on the
+same Pages project. Production continues to deploy from `main`.
+
+Queue, note, and search cooldowns use the `RATE_LIMITS` Durable Object binding,
+so separate Pages instances share the same per-visitor limits. The limiter is a
+small private Worker in `workers/limits/`; only expiry times are persisted and
+an alarm clears expired storage. Preview and production have separate Workers.
+Missing or failed bindings return 503 before a song/note is delivered. The local
+loopback server alone uses in-memory cooldowns.
+
+The deployment workflows create/update the limiter, download current Pages
+settings, and add only its binding before deploying the site. Generated Wrangler
+settings are ignored by git and never published. The existing Cloudflare API
+token needs Workers Scripts edit as well as Pages edit permission; no separate
+secret value is required. When deploying manually, use the same sequence from
+the workflow. See [Pages Durable Object bindings](https://developers.cloudflare.com/pages/functions/bindings/#durable-objects).
 
 ## Release review
 
-Before merging V2, review its Pages preview, including the social hover effects,
-phone-sized layout, expanded song search, and reduced-motion behavior. On a GPU
+Before merging changes, review the Pages preview, including the social hover
+effects, phone-sized layout, expanded song search, flip, note form, and reduced-motion behavior. On a GPU
 browser, `document.body.dataset.stage` reports `webgpu` or `webgl2` after the mesh
 loads. If absent, the HTML fallback is active. A real queue addition needs the
 configured Spotify/Turnstile environment and active playback; mocked tests do
-not verify those account settings.
+not verify those account settings. Note delivery likewise needs the configured
+Discord webhook and a valid Turnstile hostname; automated tests mock delivery.
