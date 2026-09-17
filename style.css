@@ -453,21 +453,17 @@ body[data-stage] .find input {
 .track .progress {
   display: none;
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 10px;
+  right: 10px;
+  bottom: 4px;
   height: 3px;
   overflow: hidden;
-  border-radius: 0 0 14px 14px;
+  border-radius: 999px;
   background: var(--line);
 }
 
 .track[data-spotify] .progress {
   display: block;
-}
-
-.player:has(.find:not([hidden])) .progress {
-  border-radius: 0;
 }
 
 .track .progress::before {
