@@ -1,3 +1,9 @@
+import { stepSpring } from "./spring.js";
+
+const VELOCITY_WINDOW = 100; // Only the final 100 ms of a drag contributes momentum.
+const MAX_SPEED = 1800; // Degrees per second; filters unusually large event jumps.
+const COAST_TIME = 0.2;
+
 // One rotation drives both the glass mesh and its native HTML faces.
 export function initFlip(card, { onRotate, onStart = () => {}, reduced = matchMedia("(prefers-reduced-motion: reduce)") }) {
   const front = card.querySelector(".front");
@@ -33,18 +39,24 @@ export function initFlip(card, { onRotate, onStart = () => {}, reduced = matchMe
     (isBack ? back.querySelector("textarea") : returnEdge).focus({ preventScroll: true });
   }
 
-  function settle(next) {
+  function settle(next, velocity = 0) {
     cancelAnimationFrame(frame);
     target = next;
-    if (reduced.matches || angle === target) { finish(); return; }
-    const from = angle, start = performance.now();
-    const duration = 460 * Math.abs(target - from) / 180;
+    if (reduced.matches || (angle === target && !velocity)) { finish(); return; }
+    const spring = { x: angle, v: velocity };
+    let last = performance.now();
     function animate(now) {
-      const t = Math.min((now - start) / duration, 1);
-      angle = from + (target - from) * (0.5 - Math.cos(Math.PI * t) / 2);
+      let remaining = Math.max(0, Math.min((now - last) / 1000, 0.05));
+      last = now;
+      // Small steps keep the same spring stable on slow frames and after tab suspension.
+      while (remaining > 0) {
+        const dt = Math.min(remaining, 1 / 120);
+        if (stepSpring(spring, target, 70, 14, dt, 2, 0.15)) { finish(); return; }
+        remaining -= dt;
+      }
+      angle = spring.x;
       onRotate(angle);
-      if (t < 1) frame = requestAnimationFrame(animate);
-      else finish();
+      frame = requestAnimationFrame(animate);
     }
     frame = requestAnimationFrame(animate);
   }
@@ -68,7 +80,8 @@ export function initFlip(card, { onRotate, onStart = () => {}, reduced = matchMe
       if (e.button !== 0 || e.isPrimary === false || drag || card.hasAttribute("data-flipping")) return;
       if (!isBack) returnEdge = edge;
       drag = { id: e.pointerId, x: e.clientX, y: e.clientY, from: angle,
-        width: card.getBoundingClientRect().width, progress: 0, moved: false };
+        width: card.getBoundingClientRect().width, progress: 0, moved: false, direction: 0,
+        samples: [{ angle: 0, time: performance.now() }] };
       card.setPointerCapture(e.pointerId);
     });
     // Native keyboard/assistive clicks still work; pointer clicks alone don't flip.
@@ -91,6 +104,13 @@ export function initFlip(card, { onRotate, onStart = () => {}, reduced = matchMe
       card.dataset.dragging = "";
     }
     drag.progress = dx / Math.max(drag.width * 0.6, 1) * 180;
+    const now = performance.now(), previous = drag.samples.at(-1);
+    const direction = Math.sign(drag.progress - previous.angle);
+    // A reversal should carry its new direction, not the older forward motion.
+    if (direction && drag.direction && direction !== drag.direction) drag.samples = [previous];
+    if (direction) drag.direction = direction;
+    drag.samples.push({ angle: drag.progress, time: now });
+    while (drag.samples.length > 2 && drag.samples[1].time < now - VELOCITY_WINDOW) drag.samples.shift();
     if (!reduced.matches) {
       angle = drag.from + drag.progress;
       onRotate(angle);
@@ -100,10 +120,17 @@ export function initFlip(card, { onRotate, onStart = () => {}, reduced = matchMe
     if (!drag || e.pointerId !== drag.id) return;
     const current = release();
     if (current.moved) {
-      const turns = (current.from + current.progress) / 180;
-      // Settle to the nearest face; an exact edge-on tie follows the drag.
-      const nearest = current.progress < 0 ? Math.ceil(turns - 0.5) : Math.floor(turns + 0.5);
-      settle(nearest * 180);
+      const now = performance.now(), last = current.samples.at(-1);
+      const first = current.samples.find(sample => sample.time >= now - VELOCITY_WINDOW) ?? last;
+      const elapsed = last.time - first.time;
+      let velocity = !reduced.matches && elapsed > 0 ? (last.angle - first.angle) * 1000 / elapsed : 0;
+      velocity = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, velocity));
+      velocity *= Math.max(0, 1 - (now - last.time) / VELOCITY_WINDOW);
+      const turns = (current.from + current.progress + velocity * COAST_TIME) / 180;
+      const direction = velocity || current.progress;
+      // Project the release speed onto a face, then carry that speed into the spring.
+      const nearest = direction < 0 ? Math.ceil(turns - 0.5) : Math.floor(turns + 0.5);
+      settle(nearest * 180, velocity);
     }
   });
   card.addEventListener("pointercancel", e => { if (drag?.id === e.pointerId) cancelDrag(); });

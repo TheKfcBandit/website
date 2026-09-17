@@ -13,8 +13,9 @@ navigation, text selection, and Spotify search keep working normally.
   No experimental HTML-in-canvas flag is required. Reduced motion disables the
   animated card and glow. Background tabs pause rendering.
 - Drag either edge in either direction to rotate through as many turns as you
-  like. Release to settle on the nearest face. The edges have no visible markers
-  or tooltips, and also work with Enter/Space. Back or Escape returns to the profile.
+  like. Release velocity carries a flick onward before a damped spring settles on
+  a face; pausing before release removes the momentum. The edges have no visible
+  markers or tooltips, and also work with Enter/Space. Back or Escape returns to the profile.
   The back arrow shares the social icons' magnetic hover and press styles.
   Reduced motion switches sides on release without rotating.
   The hidden face is inert, and keyboard focus follows the visible side.
