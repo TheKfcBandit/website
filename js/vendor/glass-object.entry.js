@@ -1,11 +1,12 @@
-import * as THREE from "three";
+// Adapted from Canvas UI Glass Object; see SOURCE.md for provenance.
+import * as THREE from "three/webgpu";
 import { SVGLoader } from "three/addons/loaders/SVGLoader.js";
 import { toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
+import { createGlowMaterial } from "./glow-material.js";
 
 const BACKDROP_DISTANCE = 30;
 
 const DEFAULTS = {
-  backgroundFragment: "",
   backgroundUniforms: null,
   antialias: true,
   pixelRatio: 2,
@@ -30,6 +31,7 @@ const DEFAULTS = {
   onFrame: null,
   onLoad: null,
   onError: null,
+  onRenderError: null,
 };
 
 const ROOM_BLOCKS = [
@@ -158,21 +160,23 @@ function shapesFromSvg(text) {
   return shapes;
 }
 
-export function createGlassScene(elements, options = {}) {
+export async function createGlassScene(elements, options = {}) {
   const { canvas } = elements;
   const config = { ...DEFAULTS, ...options };
 
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: config.antialias, alpha: true, powerPreference: "high-performance" });
+    renderer = new THREE.WebGPURenderer({ canvas, antialias: config.antialias, alpha: true, powerPreference: "high-performance" });
+    await renderer.init();
   } catch {
+    if (renderer?.hasInitialized()) renderer.dispose();
     return null;
   }
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.transmissionResolutionScale = config.transmissionScale;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
+  camera.coordinateSystem = renderer.coordinateSystem;
   camera.position.set(0, 0, config.cameraDistance);
   scene.add(camera);
 
@@ -208,40 +212,17 @@ export function createGlassScene(elements, options = {}) {
   };
   motionQuery.addEventListener("change", onMotionChange);
 
-  const backdropUniforms = {};
-  for (const [name, value] of Object.entries(config.backgroundUniforms ?? {})) {
-    if (typeof value === "number") backdropUniforms[name] = { value };
-    else if (Array.isArray(value[0])) backdropUniforms[name] = { value: value.map(v => new THREE.Vector2(v[0], v[1])) };
-    else if (value.length === 2) backdropUniforms[name] = { value: new THREE.Vector2(...value) };
-    else backdropUniforms[name] = { value: new THREE.Vector3(...value) };
-  }
-
-  const backdropMaterial = config.backgroundFragment
-    ? new THREE.ShaderMaterial({
-        uniforms: backdropUniforms,
-        vertexShader: "varying vec2 vUv;\nvoid main() {\n  vUv = uv;\n  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n}",
-        fragmentShader: `varying vec2 vUv;\n${config.backgroundFragment}\nvoid main() {\n  gl_FragColor = vec4(glowAt(vec2(vUv.x, 1.0 - vUv.y) * u_resolution), 1.0);\n}`,
-        toneMapped: false,
-      })
+  const glow = config.backgroundUniforms ? createGlowMaterial(config.backgroundUniforms) : null;
+  const backdropMaterial = glow
+    ? glow.material
     : new THREE.MeshBasicMaterial({ toneMapped: false });
   const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), backdropMaterial);
   backdrop.renderOrder = -1;
-  backdrop.visible = !!config.backgroundFragment;
+  backdrop.visible = !!glow;
   camera.add(backdrop);
 
   function setBackgroundUniform(name, value) {
-    const uniform = backdropUniforms[name];
-    if (!uniform) return;
-    const held = uniform.value;
-    if (Array.isArray(held)) {
-      for (let i = 0; i < held.length; i++) held[i].set(value[i * 2], value[i * 2 + 1]);
-    } else if (held?.isVector2) {
-      held.set(value[0], value[1]);
-    } else if (held?.isVector3) {
-      held.set(value[0], value[1], value[2]);
-    } else {
-      uniform.value = value;
-    }
+    glow?.setUniform(name, value);
   }
 
   function layoutBackdrop() {
@@ -257,10 +238,7 @@ export function createGlassScene(elements, options = {}) {
     const height = Math.max(canvas.clientHeight, 1);
     camera.aspect = width / height;
     camera.fov = 2 * Math.atan(height / (2 * config.focal)) * (180 / Math.PI);
-    camera.updateProjectionMatrix();
-    camera.projectionMatrix.elements[8] = (-2 * principalX) / width;
-    camera.projectionMatrix.elements[9] = (2 * principalY) / height;
-    camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+    camera.setViewOffset(width, height, -principalX, -principalY, width, height);
     layoutBackdrop();
   }
 
@@ -470,7 +448,7 @@ export function createGlassScene(elements, options = {}) {
   }
 
   function tick(time) {
-    if (!inView) {
+    if (!inView || document.hidden || disposed) {
       lastTime = 0;
       stopLoop();
       return;
@@ -491,17 +469,22 @@ export function createGlassScene(elements, options = {}) {
       }
     }
 
-    if (envDirty) {
-      envDirty = false;
-      refreshEnvironment();
+    try {
+      if (envDirty) {
+        envDirty = false;
+        refreshEnvironment();
+      }
+      scene.updateMatrixWorld();
+      config.onFrame?.();
+      renderer.render(scene, camera);
+    } catch (error) {
+      stopLoop();
+      config.onRenderError?.(error);
     }
-    scene.updateMatrixWorld();
-    config.onFrame?.();
-    renderer.render(scene, camera);
   }
 
   function startLoop() {
-    if (loopRunning || !inView || disposed) return;
+    if (loopRunning || !inView || document.hidden || disposed) return;
     loopRunning = true;
     renderer.setAnimationLoop(tick);
   }
@@ -522,6 +505,13 @@ export function createGlassScene(elements, options = {}) {
       })
     : null;
   viewObserver?.observe(canvas);
+  const onVisibility = () => document.hidden ? stopLoop() : startLoop();
+  document.addEventListener("visibilitychange", onVisibility);
+  renderer.onDeviceLost = info => {
+    if (disposed) return;
+    stopLoop();
+    config.onRenderError?.(new Error(info.message || "GPU device lost"));
+  };
 
   resize();
   applyOptions();
@@ -566,6 +556,7 @@ export function createGlassScene(elements, options = {}) {
       stopLoop();
       observer.disconnect();
       viewObserver?.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
       motionQuery.removeEventListener("change", onMotionChange);
       for (const node of nodes.values()) {
         if (node.model) disposeObject(node.model);
@@ -585,5 +576,6 @@ export function createGlassScene(elements, options = {}) {
     camera,
     scene,
     renderer,
+    backend: renderer.backend.isWebGPUBackend ? "webgpu" : "webgl2",
   };
 }

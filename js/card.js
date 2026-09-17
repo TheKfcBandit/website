@@ -1,5 +1,4 @@
 import { slabSvg, cssMatrix, projectQuad, offsetIn } from "./scene.js";
-import { glowShader } from "./glow.js";
 
 const RAD = Math.PI / 180;
 const PERSPECTIVE = new DOMMatrix("perspective(900px)");
@@ -16,7 +15,7 @@ const paths = (w, h, radius) => {
 
 let lib;
 
-export async function initCard(canvas, card) {
+export async function initCard(canvas, card, onFailure = () => {}) {
   lib ??= await import("./vendor/glass-object.js");
 
   let w = 0;
@@ -28,9 +27,12 @@ export async function initCard(canvas, card) {
   let targetX = 0;
   let targetY = 0;
   let last = 0;
+  let stopped = false;
+  let wanted = false;
+  let loaded = false;
+  let scene;
 
-  const scene = lib.createGlassScene({ canvas }, {
-    backgroundFragment: glowShader,
+  scene = await lib.createGlassScene({ canvas }, {
     backgroundUniforms: {
       u_resolution: [1, 1],
       u_time: 0,
@@ -58,6 +60,9 @@ export async function initCard(canvas, card) {
     rotationIntensity: 0.3,
     floatSpeed: 0.7,
     onFrame: compose,
+    onLoad() { loaded = true; },
+    onError: fail,
+    onRenderError: fail,
   });
   if (!scene) return null;
 
@@ -82,6 +87,7 @@ export async function initCard(canvas, card) {
   }
 
   function compose() {
+    if (!scene || stopped) return;
     place();
     const now = performance.now();
     const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
@@ -102,6 +108,11 @@ export async function initCard(canvas, card) {
     scene.setBackgroundUniform("u_quad", quad);
     scene.setBackgroundUniform("u_center", [cx + originX, cy + originY]);
     scene.setBackgroundUniform("u_radius", radius);
+    // Keep the HTML card visible until its replacement geometry is ready.
+    if (loaded && wanted) {
+      document.body.dataset.stage = scene.backend;
+      canvas.classList.add("on");
+    }
   }
 
   let shaped = "";
@@ -125,6 +136,22 @@ export async function initCard(canvas, card) {
   place();
   shape();
 
+  function stop() {
+    if (stopped) return;
+    stopped = true;
+    clearTimeout(pending);
+    observer.disconnect();
+    removeEventListener("resize", place);
+    scene.destroy();
+    card.style.transform = "";
+    canvas.classList.remove("on");
+    delete document.body.dataset.stage;
+  }
+
+  function fail() {
+    queueMicrotask(() => { stop(); onFailure(); });
+  }
+
   return {
     setTilt(x, y) {
       targetX = x;
@@ -134,15 +161,8 @@ export async function initCard(canvas, card) {
       scene.setBackgroundUniform("u_hue", hue);
     },
     ready() {
-      canvas.classList.add("on");
+      wanted = true;
     },
-    stop() {
-      clearTimeout(pending);
-      observer.disconnect();
-      removeEventListener("resize", place);
-      scene.destroy();
-      card.style.transform = "";
-      canvas.classList.remove("on");
-    },
+    stop,
   };
 }

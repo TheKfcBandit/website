@@ -1,55 +1,59 @@
 import { getToken } from "./turnstile.js";
 
-const cache = new Map();
-
 const MESSAGES = {
   "not-playing": "nothing's playing right now",
   "slow-down": "one song a minute, please",
-  unverified: "couldn't verify you",
+  unverified: "couldn't verify you — try again",
   "reauth-needed": "spotify needs reconnecting",
   forbidden: "spotify wouldn't take that",
 };
 
-export function initQueue(player) {
+export function initQueue(player, { verify = getToken } = {}) {
   const button = player.querySelector(".queue");
   const form = player.querySelector(".find");
   const input = form.querySelector("input");
   const send = form.querySelector(".send");
   const list = form.querySelector(".results");
+  const feedback = form.querySelector(".queue-feedback");
+  const cache = new Map();
+  let results = [], picked = null, active = -1;
+  let timer = 0, feedbackTimer = 0, controller = null, seq = 0, session = 0;
+  let deleting = false, busy = false;
 
-  let results = [];
-  let picked = null;
-  let active = -1;
-  let timer = 0;
-  let controller = null;
-  let seq = 0;
-  let deleting = false;
+  function cancelSearch() {
+    clearTimeout(timer);
+    controller?.abort();
+    controller = null;
+    ++seq;
+  }
 
-  function clear() {
-    input.value = "";
+  function clearResults() {
     results = [];
     picked = null;
     active = -1;
     list.replaceChildren();
     send.disabled = true;
-    delete send.dataset.state;
-    send.removeAttribute("title");
-    controller?.abort();
   }
 
   function open(next) {
     const on = next ?? form.hidden;
+    ++session;
+    cancelSearch();
+    clearTimeout(feedbackTimer);
     form.hidden = !on;
     button.setAttribute("aria-expanded", String(on));
+    input.value = "";
+    clearResults();
+    feedback.textContent = "";
+    delete send.dataset.state;
     if (on) input.focus();
-    else clear();
   }
 
   function pick(i) {
     active = i;
     picked = results[i] ?? null;
-    send.disabled = !picked;
-    list.querySelectorAll("button").forEach((b, n) => b.setAttribute("aria-selected", String(n === i)));
+    send.disabled = !picked || busy;
+    list.querySelectorAll("button").forEach((b, n) => b.setAttribute("aria-pressed", String(n === i)));
   }
 
   function render() {
@@ -75,116 +79,125 @@ export function initQueue(player) {
       li.append(b);
       return li;
     }));
-    if (results.length) pick(0);
-    else {
-      picked = null;
-      send.disabled = true;
-    }
+    pick(results.length ? 0 : -1);
+    feedback.textContent = results.length ? "" : "no songs found";
   }
 
   function autofill(q) {
     const t = results[0];
-    if (deleting || !t || input.value !== q) return;
-    if (!t.name.toLowerCase().startsWith(q.toLowerCase())) return;
+    if (deleting || !t || input.value !== q || !t.name.toLowerCase().startsWith(q.toLowerCase())) return;
     const full = `${t.name} - ${t.artist}`;
     input.value = full;
     input.setSelectionRange(q.length, full.length);
   }
 
-  async function search(q) {
-    if (cache.has(q)) {
-      results = cache.get(q);
-      render();
-      autofill(q);
-      return;
-    }
-    controller?.abort();
-    controller = new AbortController();
-    const mine = ++seq;
+  async function search(q, mine) {
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: controller.signal });
-      if (!res.ok || mine !== seq) return;
-      const data = await res.json();
-      if (cache.size > 40) cache.clear();
+      let data = cache.get(q);
+      if (!data) {
+        controller = new AbortController();
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: controller.signal });
+        if (!res.ok) throw new Error(res.status === 429 ? "search-slow" : "search-failed");
+        data = await res.json();
+        if (!Array.isArray(data)) throw new Error("search-failed");
+      }
+      // Also check after JSON parsing: typing, closing, or a cached search may
+      // have invalidated this response while the network was still finishing.
+      if (mine !== seq || form.hidden || busy) return;
+      if (cache.size >= 40) cache.clear();
       cache.set(q, data);
       results = data;
       render();
       autofill(q);
-    } catch {}
+    } catch (error) {
+      if (mine !== seq || form.hidden || error.name === "AbortError") return;
+      clearResults();
+      feedback.textContent = error.message === "search-slow"
+        ? "searching too fast — try again in a moment"
+        : "couldn't search spotify — try again";
+    }
   }
 
   button.addEventListener("click", () => open());
-
-  input.addEventListener("beforeinput", e => {
-    deleting = !!e.inputType?.startsWith("delete");
-  });
-
+  input.addEventListener("beforeinput", e => { deleting = !!e.inputType?.startsWith("delete"); });
   input.addEventListener("input", () => {
-    const q = input.value.trim();
-    clearTimeout(timer);
-    picked = null;
-    send.disabled = true;
+    cancelSearch();
+    clearResults();
+    clearTimeout(feedbackTimer);
     delete send.dataset.state;
-    send.removeAttribute("title");
-    if (!q) {
-      results = [];
-      list.replaceChildren();
-      return;
-    }
-    timer = setTimeout(() => search(q), 250);
+    const q = input.value.trim();
+    feedback.textContent = q ? "searching…" : "";
+    if (!q || busy) return;
+    const mine = seq;
+    timer = setTimeout(() => search(q, mine), 250);
   });
 
-  input.addEventListener("keydown", e => {
+  form.addEventListener("keydown", e => {
     if (e.key === "Escape") {
+      e.preventDefault();
       open(false);
       button.focus();
-      return;
     }
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    if (!results.length) return;
+  });
+  input.addEventListener("keydown", e => {
+    if (busy || !results.length || !["ArrowDown", "ArrowUp"].includes(e.key)) return;
     e.preventDefault();
-    const n = results.length;
-    pick((((active + (e.key === "ArrowDown" ? 1 : -1)) % n) + n) % n);
+    pick((active + (e.key === "ArrowDown" ? 1 : -1) + results.length) % results.length);
     input.value = `${results[active].name} - ${results[active].artist}`;
   });
 
   form.addEventListener("submit", async e => {
     e.preventDefault();
-    if (!picked) return;
-    const track = picked;
+    if (!picked || busy) return;
+    const track = picked, mine = session;
+    busy = true;
+    cancelSearch();
     list.replaceChildren();
+    input.disabled = true;
     send.disabled = true;
+    form.setAttribute("aria-busy", "true");
     send.dataset.state = "sending";
-    send.removeAttribute("title");
-    let ok = false;
-    let error = "";
+    feedback.textContent = "adding to queue…";
+    let ok = false, error = "";
     try {
-      const token = await getToken();
+      const token = await verify();
+      // Closing the picker while verification is pending cancels the action.
+      if (mine !== session || form.hidden) return;
       const res = await fetch("/api/queue", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ uri: track.uri, token }),
+        signal: AbortSignal.timeout(15000),
       });
       ok = res.ok;
       if (!ok) error = (await res.json().catch(() => ({}))).error;
-    } catch {}
+    } catch {
+      error = "request-failed";
+    } finally {
+      busy = false;
+      input.disabled = false;
+      form.removeAttribute("aria-busy");
+    }
+    if (mine !== session || form.hidden) return;
     send.dataset.state = ok ? "ok" : "err";
-    if (!ok) send.title = MESSAGES[error] ?? "couldn't queue that";
-    setTimeout(() => {
-      if (ok) {
+    feedback.textContent = ok ? "added to queue" : (MESSAGES[error] ?? "couldn't confirm the add — check the queue before retrying");
+    if (ok) {
+      picked = null;
+      feedbackTimer = setTimeout(() => {
+        if (mine !== session) return;
+        const restoreFocus = form.contains(document.activeElement);
         open(false);
-      } else {
-        delete send.dataset.state;
-        send.removeAttribute("title");
-        send.disabled = !picked;
-      }
-    }, ok ? 1100 : 1600);
+        if (restoreFocus) button.focus();
+      }, 1400);
+    } else {
+      send.disabled = false;
+    }
   });
 
   return {
     playing(on) {
       button.hidden = !on;
-      if (!on) open(false);
+      if (!on && !form.hidden) open(false);
     },
   };
 }

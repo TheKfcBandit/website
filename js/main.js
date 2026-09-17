@@ -39,7 +39,7 @@ card.addEventListener("pointerenter", () => {
 });
 
 card.addEventListener("pointermove", e => {
-  if (reduced.matches || !hoverRect || !slab) return;
+  if (e.pointerType !== "mouse" || reduced.matches || !hoverRect || !slab) return;
   slab.setTilt(
     -((e.clientY - hoverRect.top) / hoverRect.height - 0.5) * 6,
     ((e.clientX - hoverRect.left) / hoverRect.width - 0.5) * 6
@@ -99,6 +99,7 @@ addEventListener("pointermove", e => {
   pull(el, (e.clientX - r.left - r.width / 2) * 0.32, (e.clientY - r.top - r.height / 2) * 0.32);
 });
 
+let cardPending = false;
 async function syncCard() {
   if (reduced.matches) {
     slab?.stop();
@@ -107,20 +108,25 @@ async function syncCard() {
     syncGlow();
     return;
   }
-  if (slab) return;
-  const next = await initCard(stage, card).catch(() => null);
+  if (slab || cardPending) return;
+  cardPending = true;
+  const next = await initCard(stage, card, () => {
+    slab = null;
+    syncGlow();
+  }).catch(() => null);
+  cardPending = false;
   if (!next) return;
   if (reduced.matches) {
     next.stop();
     return;
   }
   slab = next;
-  document.body.dataset.stage = "";
   slab.ready();
   syncGlow();
 }
 
-addEventListener("load", syncCard, { once: true });
+if (document.readyState === "complete") syncCard();
+else addEventListener("load", syncCard, { once: true });
 reduced.addEventListener("change", syncCard);
 
 const queue = initQueue(card.querySelector(".player"));
@@ -148,6 +154,7 @@ const trackArtist = track.querySelector(".artist");
 const trackWhen = track.querySelector(".when");
 
 function renderTrack(t) {
+  track.style.removeProperty("--p");
   if (!t) {
     track.removeAttribute("href");
     track.removeAttribute("data-live");
