@@ -4,7 +4,7 @@ void main() {
   gl_Position = vec4(a_pos, 0.0, 1.0);
 }`;
 
-export const glowShader = `
+const glowShader = `
 uniform vec2 u_resolution;
 uniform float u_time;
 uniform float u_scale;
@@ -76,24 +76,35 @@ export function initGlow(canvas, card) {
   let time = 0;
   let last = 0;
   let uniforms;
+  let program = null, buffer = null;
   let cardKey = "";
   const quad = new Float32Array(8);
   let hue = 0.66;
   let targetHue = 0.66;
   let hueSet = false;
 
+  function dispose() {
+    if (buffer) gl.deleteBuffer(buffer);
+    if (program) gl.deleteProgram(program);
+    buffer = program = null;
+  }
+
   function setup() {
-    const program = gl.createProgram();
+    dispose();
+    program = gl.createProgram();
     for (const [type, src] of [[gl.VERTEX_SHADER, vert], [gl.FRAGMENT_SHADER, frag]]) {
       const shader = gl.createShader(type);
       gl.shaderSource(shader, src);
       gl.compileShader(shader);
       gl.attachShader(program, shader);
+      // Attached shaders remain alive until the program is deleted.
+      gl.deleteShader(shader);
     }
     gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return false;
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { dispose(); return false; }
     gl.useProgram(program);
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     const pos = gl.getAttribLocation(program, "a_pos");
     gl.enableVertexAttribArray(pos);
@@ -170,7 +181,7 @@ export function initGlow(canvas, card) {
   }
 
   function start() {
-    if (raf) return;
+    if (raf || !program || document.hidden || gl.isContextLost()) return;
     last = performance.now();
     raf = requestAnimationFrame(frame);
   }
@@ -184,6 +195,8 @@ export function initGlow(canvas, card) {
   const onLost = e => {
     e.preventDefault();
     pause();
+    buffer = program = null;
+    canvas.classList.remove("on");
   };
   const onRestored = () => {
     if (setup()) start();
@@ -206,6 +219,7 @@ export function initGlow(canvas, card) {
     },
     stop() {
       pause();
+      dispose();
       removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVisibility);
       canvas.removeEventListener("webglcontextlost", onLost);

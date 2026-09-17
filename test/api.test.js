@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const env = { SPOTIFY_CLIENT_ID: 'test-client', SPOTIFY_CLIENT_SECRET: 'test-secret', SPOTIFY_REFRESH_TOKEN: 'test-refresh', TURNSTILE_SECRET: 'test-turnstile' };
+const env = { LOCAL_DEV: true, SPOTIFY_CLIENT_ID: 'test-client', SPOTIFY_CLIENT_SECRET: 'test-secret', SPOTIFY_REFRESH_TOKEN: 'test-refresh', TURNSTILE_SECRET: 'test-turnstile' };
 const uri = `spotify:track:${'A'.repeat(22)}`;
 let requestId = 0, moduleId = 0;
 function context(body, overrides = {}) {

@@ -12,11 +12,15 @@ navigation, text selection, and Spotify search keep working normally.
 - WebGPU is preferred, with WebGL2 and then the regular HTML/CSS card as fallbacks.
   No experimental HTML-in-canvas flag is required. Reduced motion disables the
   animated card and glow. Background tabs pause rendering.
-- The envelope button turns the glass card over to a Discord note form. Back or
-  Escape returns to the profile. Reduced motion switches sides immediately.
+- Drag either edge inward to turn the card over. Short drags settle back; the
+  edges also work with Enter/Space. Back or Escape returns to the profile.
+  The back arrow shares the social icons' magnetic hover and press styles.
+  Reduced motion switches sides on release without rotating.
   The hidden face is inert, and keyboard focus follows the visible side.
 - Playback progress is clipped into the bottom edge of the player, including
   when the queue search is expanded. Its timing still comes from Lanyard.
+  Disconnects and expired tracks fall back to Last.fm; presence-only updates
+  preserve progress. Failed Last.fm polls clear stale playback state.
 
 ## Development
 
@@ -59,6 +63,20 @@ directory to `dist`. Committed root assets also remain usable by the existing
 zero-build integration. `_routes.json` limits Function invocation to `/api/*`.
 Pushes to `codex/**` run the checks and deploy a preview for that branch on the
 same Pages project. Production continues to deploy from `main`.
+
+Queue, note, and search cooldowns use the `RATE_LIMITS` Durable Object binding,
+so separate Pages instances share the same per-visitor limits. The limiter is a
+small private Worker in `workers/limits/`; only expiry times are persisted and
+an alarm clears expired storage. Preview and production have separate Workers.
+Missing or failed bindings return 503 before a song/note is delivered. The local
+loopback server alone uses in-memory cooldowns.
+
+The deployment workflows create/update the limiter, download current Pages
+settings, and add only its binding before deploying the site. Generated Wrangler
+settings are ignored by git and never published. The existing Cloudflare API
+token needs Workers Scripts edit as well as Pages edit permission; no separate
+secret value is required. When deploying manually, use the same sequence from
+the workflow. See [Pages Durable Object bindings](https://developers.cloudflare.com/pages/functions/bindings/#durable-objects).
 
 ## Release review
 

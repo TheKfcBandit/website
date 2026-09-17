@@ -47,3 +47,7 @@ Rebuild after editing:
 npm ci
 npm run build
 ```
+
+Unused `transmissionScale`, `setFade`, and `setOptions` APIs were removed from the
+adaptation. Both glow paths remain: standalone WebGL fallback and the renderer's
+TSL material. Renderer teardown disposes each owned material once.

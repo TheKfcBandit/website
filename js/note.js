@@ -5,6 +5,7 @@ const MESSAGES = {
   "slow-down": "Please wait a moment before sending another note.",
   unverified: "Couldn't verify you — try again.",
   "not-configured": "Notes are unavailable right now.",
+  "temporarily-unavailable": "Notes are temporarily unavailable — try again shortly.",
 };
 
 export function initNote(form, { verify = getToken } = {}) {
@@ -39,7 +40,7 @@ export function initNote(form, { verify = getToken } = {}) {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ note, website, token }),
-        signal: AbortSignal.timeout(25000),
+        signal: AbortSignal.timeout(30000),
       });
       if (res.ok) {
         form.reset();

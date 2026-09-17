@@ -2,3 +2,7 @@ node_modules/
 .dev.vars
 .wrangler/
 dist/
+
+# Downloaded deployment settings may contain private environment values.
+/wrangler.toml
+/wrangler.json

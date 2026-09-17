@@ -8,7 +8,7 @@ import { onRequestPost } from '../functions/api/note.js';
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const settle = () => new Promise(resolve => setImmediate(resolve));
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
-const env = { TURNSTILE_SECRET: 'test-secret', DISCORD_WEBHOOK_URL: 'https://discord.example.test/webhook' };
+const env = { LOCAL_DEV: true, TURNSTILE_SECRET: 'test-secret', DISCORD_WEBHOOK_URL: 'https://discord.example.test/webhook' };
 let requestId = 0;
 const context = (body, config = env) => ({ env: config, request: new Request('https://example.test/api/note', {
   method: 'POST', headers: { 'content-type': 'application/json', 'cf-connecting-ip': `note-${++requestId}` },

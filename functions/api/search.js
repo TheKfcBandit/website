@@ -26,7 +26,9 @@ export async function onRequestGet({ request, env }) {
   const empty = new Response("[]", { headers: { "content-type": "application/json" } });
   if (!q || q.length > 100) return empty;
   if (!env.SPOTIFY_CLIENT_ID || !env.SPOTIFY_CLIENT_SECRET) return new Response(null, { status: 503 });
-  if (throttled(request, "search", 200)) return new Response(null, { status: 429 });
+  try {
+    if (await throttled(request, env, "search", 200)) return new Response(null, { status: 429 });
+  } catch { return new Response(null, { status: 503 }); }
 
   try {
     const key = await appToken(env);

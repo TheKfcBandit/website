@@ -17,7 +17,9 @@ export async function onRequestPost({ request, env }) {
   if (!note || note.length > 280) return fail(400, "bad-note");
   if (!env.DISCORD_WEBHOOK_URL || !env.TURNSTILE_SECRET) return fail(503, "not-configured");
   if (!(await verifyTurnstile(body.token, request, env))) return fail(403, "unverified");
-  if (throttled(request, "note", 30000)) return fail(429, "slow-down");
+  try {
+    if (await throttled(request, env, "note", 30000)) return fail(429, "slow-down");
+  } catch { return fail(503, "temporarily-unavailable"); }
   try {
     const res = await fetch(env.DISCORD_WEBHOOK_URL, {
       method: "POST",

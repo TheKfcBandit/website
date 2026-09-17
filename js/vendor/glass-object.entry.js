@@ -11,7 +11,6 @@ const DEFAULTS = {
   backgroundUniforms: null,
   antialias: true,
   pixelRatio: 2,
-  transmissionScale: 0.5,
   ior: 1.75,
   thickness: 4,
   roughness: 0.25,
@@ -544,13 +543,6 @@ export async function createGlassScene(elements, options = {}) {
       const node = nodes.get(id);
       if (node) node.turn.rotation.y = angle;
     },
-    setFade(id, value) {
-      const node = nodes.get(id);
-      if (!node) return;
-      node.anchor.visible = value > 0.01;
-      node.material.transparent = value < 0.999;
-      node.material.opacity = value;
-    },
     nodeMatrix(id) {
       const node = nodes.get(id);
       if (!node) return null;
@@ -562,13 +554,6 @@ export async function createGlassScene(elements, options = {}) {
       principalY = y;
       applyProjection();
     },
-    setOptions(next) {
-      const previousHighlight = config.highlight;
-      Object.assign(config, next);
-      if (config.highlight !== previousHighlight) envDirty = true;
-      applyOptions();
-      startLoop();
-    },
     resize,
     destroy() {
       disposed = true;
@@ -578,7 +563,7 @@ export async function createGlassScene(elements, options = {}) {
       document.removeEventListener("visibilitychange", onVisibility);
       motionQuery.removeEventListener("change", onMotionChange);
       for (const node of nodes.values()) {
-        if (node.model) disposeObject(node.model);
+        if (node.model) disposeObject(node.model, node.material);
         node.material.dispose();
       }
       nodes.clear();
