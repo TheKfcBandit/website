@@ -53,6 +53,8 @@ Pages Functions are compiled from the root `functions/` directory. If using
 Cloudflare's Git integration, set the build command to `npm run build` and output
 directory to `dist`. Committed root assets also remain usable by the existing
 zero-build integration. `_routes.json` limits Function invocation to `/api/*`.
+Pushes to `remaster` also run the checks and deploy the dedicated `v2-preview`
+branch on the same Pages project, leaving the production branch unchanged.
 
 ## Release review
 
