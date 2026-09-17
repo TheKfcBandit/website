@@ -51,7 +51,7 @@ test('flip uses 180 degrees and only the visible face is interactive, with focus
   assert.equal(ui.back.hasAttribute('inert'), false);
   assert.equal(document.activeElement, ui.back.querySelector('textarea'));
   ui.escape(); ui.advance(460);
-  assert.equal(ui.rotations.at(-1), 0);
+  assert.equal(ui.rotations.at(-1), 360);
   assert.equal(ui.card.dataset.side, 'front');
   assert.equal(document.activeElement, ui.open);
   assert.deepEqual(ui.starts, [true, false]);
@@ -63,7 +63,7 @@ test('reduced motion and changing that preference mid-flip finish on the intende
   assert.equal(ui.rotations.at(-1), 180);
   assert.equal(ui.frames.size, 0);
   ui.close.click();
-  assert.equal(ui.rotations.at(-1), 0);
+  assert.equal(ui.rotations.at(-1), 360);
   assert.equal(ui.frames.size, 0);
 });
 
@@ -125,5 +125,53 @@ test('reduced-motion drags switch only on release and other pointers cannot stea
   ui.pointer('pointerup', ui.card, 120);
   assert.equal(ui.card.dataset.side, 'back');
   assert.equal(ui.rotations.at(-1), 180);
+  assert.equal(ui.frames.size, 0);
+});
+
+for (const edge of ['left', 'right']) {
+  test(`the ${edge} edge rotates through multiple full turns without clamping or resetting`, t => {
+    const ui = setup(t), sign = edge === 'left' ? 1 : -1;
+    const handle = ui.front.querySelector(`[data-edge="${edge}"]`);
+    ui.pointer('pointerdown', handle, 0);
+    for (const pixels of [240, 480, 720, 960]) {
+      ui.pointer('pointermove', ui.card, sign * pixels);
+      assert.equal(ui.rotations.at(-1), sign * pixels * 0.75);
+    }
+    ui.pointer('pointerup', ui.card, sign * 960);
+    assert.equal(ui.rotations.at(-1), sign * 720);
+    assert.equal(ui.card.dataset.side, 'front');
+    assert.equal(ui.frames.size, 0);
+    // A new grab continues from that angle instead of jumping back to zero.
+    ui.pointer('pointerdown', handle, 0);
+    ui.pointer('pointermove', ui.card, sign * 240);
+    assert.equal(ui.rotations.at(-1), sign * 900);
+    ui.pointer('pointerup', ui.card, sign * 240);
+    assert.equal(ui.card.dataset.side, 'back');
+    assert.equal(ui.back.hasAttribute('inert'), false);
+  });
+}
+
+test('an edge accepts outward drags and reversals across the starting angle', t => {
+  const ui = setup(t);
+  ui.pointer('pointerdown', ui.open, 0);
+  ui.pointer('pointermove', ui.card, -300);
+  assert.equal(ui.rotations.at(-1), -225);
+  ui.pointer('pointermove', ui.card, 520);
+  assert.equal(ui.rotations.at(-1), 390);
+  ui.pointer('pointerup', ui.card, 520);
+  ui.advance(460);
+  assert.equal(ui.rotations.at(-1), 360);
+  assert.equal(ui.card.dataset.side, 'front');
+});
+
+test('canceling after several turns restores the original face without unwinding every turn', t => {
+  const ui = setup(t);
+  ui.pointer('pointerdown', ui.open, 0);
+  ui.pointer('pointermove', ui.card, 1080);
+  assert.equal(ui.rotations.at(-1), 810);
+  ui.pointer('pointercancel', ui.card, 1080);
+  ui.advance(460);
+  assert.equal(ui.rotations.at(-1), 720);
+  assert.equal(ui.card.dataset.side, 'front');
   assert.equal(ui.frames.size, 0);
 });

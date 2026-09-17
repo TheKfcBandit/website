@@ -12,8 +12,9 @@ navigation, text selection, and Spotify search keep working normally.
 - WebGPU is preferred, with WebGL2 and then the regular HTML/CSS card as fallbacks.
   No experimental HTML-in-canvas flag is required. Reduced motion disables the
   animated card and glow. Background tabs pause rendering.
-- Drag either edge inward to turn the card over. Short drags settle back; the
-  edges also work with Enter/Space. Back or Escape returns to the profile.
+- Drag either edge in either direction to rotate through as many turns as you
+  like. Release to settle on the nearest face. The edges have no visible markers
+  or tooltips, and also work with Enter/Space. Back or Escape returns to the profile.
   The back arrow shares the social icons' magnetic hover and press styles.
   Reduced motion switches sides on release without rotating.
   The hidden face is inert, and keyboard focus follows the visible side.

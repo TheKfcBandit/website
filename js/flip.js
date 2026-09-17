@@ -25,7 +25,7 @@ export function initFlip(card, { onRotate, onStart = () => {}, reduced = matchMe
   function finish() {
     frame = 0;
     isBack = Math.abs(Math.round(target / 180) % 2) === 1;
-    angle = target = isBack ? 180 : 0;
+    angle = target;
     onRotate(angle);
     card.dataset.side = isBack ? "back" : "front";
     delete card.dataset.flipping;
@@ -59,7 +59,7 @@ export function initFlip(card, { onRotate, onStart = () => {}, reduced = matchMe
 
   function cancelDrag() {
     const current = release();
-    if (current?.moved) settle(current.from);
+    if (current?.moved) settle(current.from + Math.round((angle - current.from) / 360) * 360);
   }
 
   for (const edge of edges) {
@@ -67,7 +67,7 @@ export function initFlip(card, { onRotate, onStart = () => {}, reduced = matchMe
     edge.addEventListener("pointerdown", e => {
       if (e.button !== 0 || e.isPrimary === false || drag || card.hasAttribute("data-flipping")) return;
       if (!isBack) returnEdge = edge;
-      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, from: angle, direction,
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, from: angle,
         width: card.getBoundingClientRect().width, progress: 0, moved: false };
       card.setPointerCapture(e.pointerId);
     });
@@ -85,21 +85,26 @@ export function initFlip(card, { onRotate, onStart = () => {}, reduced = matchMe
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (!drag.moved) {
       if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 6) { release(); return; }
-      if (dx * drag.direction < 6) return;
+      if (Math.abs(dx) < 6) return;
       drag.moved = true;
       begin(!isBack);
       card.dataset.dragging = "";
     }
-    drag.progress = Math.max(0, Math.min(180, dx * drag.direction / Math.max(drag.width * 0.6, 1) * 180));
+    drag.progress = dx / Math.max(drag.width * 0.6, 1) * 180;
     if (!reduced.matches) {
-      angle = drag.from + drag.direction * drag.progress;
+      angle = drag.from + drag.progress;
       onRotate(angle);
     }
   });
   card.addEventListener("pointerup", e => {
     if (!drag || e.pointerId !== drag.id) return;
     const current = release();
-    if (current.moved) settle(current.from + (current.progress >= 60 ? current.direction * 180 : 0));
+    if (current.moved) {
+      const turns = (current.from + current.progress) / 180;
+      // Settle to the nearest face; an exact edge-on tie follows the drag.
+      const nearest = current.progress < 0 ? Math.ceil(turns - 0.5) : Math.floor(turns + 0.5);
+      settle(nearest * 180);
+    }
   });
   card.addEventListener("pointercancel", e => { if (drag?.id === e.pointerId) cancelDrag(); });
   card.addEventListener("lostpointercapture", e => { if (drag?.id === e.pointerId) cancelDrag(); });

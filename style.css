@@ -146,17 +146,6 @@ body[data-stage] .card::before {
 
 .flip-edge[data-edge="left"] { left: 0; }
 .flip-edge[data-edge="right"] { right: 0; }
-.flip-edge::after {
-  content: "";
-  position: absolute;
-  inset: 35% 9px;
-  border-radius: 1px;
-  background: var(--muted);
-  opacity: 0.15;
-  transition: opacity 0.2s;
-}
-.flip-edge:hover::after,
-.flip-edge:focus-visible::after { opacity: 0.7; }
 .flip-edge:focus-visible { outline-offset: -3px; }
 .card[data-dragging],
 .card[data-dragging] * { cursor: grabbing; user-select: none; }
