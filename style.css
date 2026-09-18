@@ -634,6 +634,7 @@ nav {
 
 .icon-button {
   position: relative;
+  isolation: isolate;
   padding: 0;
   border: 0;
   background: none;
@@ -652,11 +653,13 @@ nav {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 0;
   border-radius: inherit;
   background: radial-gradient(80px at var(--mx, 50%) var(--my, 50%), rgba(var(--accent-3-rgb), 0.3), transparent 70%);
   opacity: 0;
   transition: opacity 0.25s;
-  pointer-events: none;
+  /* Keep the full button surface interactive, including its transparent padding. */
+  pointer-events: auto;
 }
 
 .icon-button:hover {
@@ -706,8 +709,11 @@ nav {
 }
 
 .icon-button svg {
+  position: relative;
+  z-index: 1;
   width: 21px;
   height: 21px;
+  pointer-events: none;
 }
 
 .icon-button svg:not([fill]) { fill: currentColor; }
