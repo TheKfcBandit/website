@@ -644,14 +644,28 @@ nav {
   border-radius: 12px;
   color: var(--muted);
   cursor: pointer;
-  transform: translate(var(--pull-x, 0px), var(--pull-y, 0px));
-  transition: color 0.2s, background 0.2s, filter 0.2s;
+  transition: color 0.2s;
 }
 
-.icon-button::after {
+/* Animate the visible surface while keeping the full 40px hit area stationary. */
+.icon-surface {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+  transform: translate(var(--pull-x, 0px), var(--pull-y, 0px));
+  transition: background 0.2s, filter 0.2s;
+}
+
+.icon-surface::after {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 0;
   border-radius: inherit;
   background: radial-gradient(80px at var(--mx, 50%) var(--my, 50%), rgba(var(--accent-3-rgb), 0.3), transparent 70%);
   opacity: 0;
@@ -661,6 +675,9 @@ nav {
 
 .icon-button:hover {
   color: var(--text);
+}
+
+.icon-button:hover .icon-surface {
   background: rgba(255, 255, 255, 0.07);
   transform: translate(var(--pull-x, 0px), calc(var(--pull-y, 0px) - 2px));
   filter: brightness(1.3);
@@ -668,6 +685,9 @@ nav {
 
 .icon-button:focus-visible {
   color: var(--text);
+}
+
+.icon-button:focus-visible .icon-surface {
   background: rgba(255, 255, 255, 0.07);
 }
 
@@ -696,21 +716,41 @@ nav {
   .track img { width: 40px; height: 40px; }
 }
 
-.icon-button:hover::after {
+.icon-button:hover .icon-surface::after {
   opacity: 1;
 }
 
-.icon-button:active {
+.icon-button:active .icon-surface {
   transform: translate(var(--pull-x, 0px), calc(var(--pull-y, 0px) - 2px)) scale(0.82);
   transition-duration: 0.06s;
 }
 
 .icon-button svg {
+  position: relative;
+  z-index: 1;
   width: 21px;
   height: 21px;
+  pointer-events: none;
 }
 
 .icon-button svg:not([fill]) { fill: currentColor; }
+
+/* Soft brand tints belong to the glyph; the shared blue glow stays unchanged. */
+.icon-button[data-brand="discord"] { --brand-tint: #adb0ee; }
+.icon-button[data-brand="youtube"] { --brand-tint: #df969c; }
+.icon-button[data-brand="steam"]   { --brand-tint: #93b8cf; }
+.icon-button[data-brand="spotify"] { --brand-tint: #86cfa3; }
+.icon-button[data-brand="xbox"]    { --brand-tint: #a3c58c; }
+.icon-button[data-brand="lastfm"]  { --brand-tint: #d58b9e; }
+
+.icon-button[data-brand] svg {
+  color: var(--muted);
+  transition: color 0.2s;
+}
+
+.icon-button[data-brand]:is(:hover, :focus-visible) svg {
+  color: var(--brand-tint, var(--text));
+}
 
 #ts {
   position: fixed;
@@ -726,7 +766,7 @@ nav {
     transition: none !important;
     animation: none !important;
   }
-  .icon-button,
-  .icon-button:hover,
-  .icon-button:active { transform: none; }
+  .icon-surface,
+  .icon-button:hover .icon-surface,
+  .icon-button:active .icon-surface { transform: none; }
 }
