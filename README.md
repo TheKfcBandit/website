@@ -75,7 +75,14 @@ loopback server alone uses in-memory cooldowns.
 
 The deployment workflows create/update the limiter, download current Pages
 settings, and add only its binding before deploying the site. Generated Wrangler
-settings are ignored by git and never published. The existing Cloudflare API
+settings are ignored by git and never published. Both workflows pin Wrangler
+4.134.0 because Pages JSON configuration requires 3.91 or newer; older versions
+can silently ignore the generated binding. After deployment, CI checks the
+actual Pages environment for the binding and required API settings without
+printing secret values or sending a note. Missing production settings fail the
+deployment check; missing preview settings are reported as a warning so visual
+previews can run without delivery credentials. Preview notes and queue additions
+need their own secrets configured before they work. The existing Cloudflare API
 token needs Workers Scripts edit as well as Pages edit permission; no separate
 secret value is required. When deploying manually, use the same sequence from
 the workflow. See [Pages Durable Object bindings](https://developers.cloudflare.com/pages/functions/bindings/#durable-objects).
