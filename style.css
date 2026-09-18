@@ -712,6 +712,23 @@ nav {
 
 .icon-button svg:not([fill]) { fill: currentColor; }
 
+/* Soft brand tints belong to the glyph; the shared blue glow stays unchanged. */
+.icon-button[data-brand="discord"] { --brand-tint: #adb0ee; }
+.icon-button[data-brand="youtube"] { --brand-tint: #df969c; }
+.icon-button[data-brand="steam"]   { --brand-tint: #93b8cf; }
+.icon-button[data-brand="spotify"] { --brand-tint: #86cfa3; }
+.icon-button[data-brand="xbox"]    { --brand-tint: #a3c58c; }
+.icon-button[data-brand="lastfm"]  { --brand-tint: #d58b9e; }
+
+.icon-button[data-brand] svg {
+  color: var(--muted);
+  transition: color 0.2s;
+}
+
+.icon-button[data-brand]:is(:hover, :focus-visible) svg {
+  color: var(--brand-tint, var(--text));
+}
+
 #ts {
   position: fixed;
 }
