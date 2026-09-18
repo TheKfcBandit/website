@@ -634,7 +634,6 @@ nav {
 
 .icon-button {
   position: relative;
-  isolation: isolate;
   padding: 0;
   border: 0;
   background: none;
@@ -645,11 +644,24 @@ nav {
   border-radius: 12px;
   color: var(--muted);
   cursor: pointer;
-  transform: translate(var(--pull-x, 0px), var(--pull-y, 0px));
-  transition: color 0.2s, background 0.2s, filter 0.2s;
+  transition: color 0.2s;
 }
 
-.icon-button::after {
+/* Animate the visible surface while keeping the full 40px hit area stationary. */
+.icon-surface {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+  transform: translate(var(--pull-x, 0px), var(--pull-y, 0px));
+  transition: background 0.2s, filter 0.2s;
+}
+
+.icon-surface::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -658,12 +670,14 @@ nav {
   background: radial-gradient(80px at var(--mx, 50%) var(--my, 50%), rgba(var(--accent-3-rgb), 0.3), transparent 70%);
   opacity: 0;
   transition: opacity 0.25s;
-  /* Keep the full button surface interactive, including its transparent padding. */
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .icon-button:hover {
   color: var(--text);
+}
+
+.icon-button:hover .icon-surface {
   background: rgba(255, 255, 255, 0.07);
   transform: translate(var(--pull-x, 0px), calc(var(--pull-y, 0px) - 2px));
   filter: brightness(1.3);
@@ -671,6 +685,9 @@ nav {
 
 .icon-button:focus-visible {
   color: var(--text);
+}
+
+.icon-button:focus-visible .icon-surface {
   background: rgba(255, 255, 255, 0.07);
 }
 
@@ -699,11 +716,11 @@ nav {
   .track img { width: 40px; height: 40px; }
 }
 
-.icon-button:hover::after {
+.icon-button:hover .icon-surface::after {
   opacity: 1;
 }
 
-.icon-button:active {
+.icon-button:active .icon-surface {
   transform: translate(var(--pull-x, 0px), calc(var(--pull-y, 0px) - 2px)) scale(0.82);
   transition-duration: 0.06s;
 }
@@ -749,7 +766,7 @@ nav {
     transition: none !important;
     animation: none !important;
   }
-  .icon-button,
-  .icon-button:hover,
-  .icon-button:active { transform: none; }
+  .icon-surface,
+  .icon-button:hover .icon-surface,
+  .icon-button:active .icon-surface { transform: none; }
 }
