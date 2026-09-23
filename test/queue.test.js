@@ -28,12 +28,16 @@ function setup(t, verify = async () => 'test-verification-token') {
   };
 }
 
-test('all social destinations are real keyboard-accessible links, including current Discord', () => {
+test('all social destinations are real keyboard-accessible links, including a Discord invite', t => {
   const dom = new JSDOM(html);
+  t.after(() => dom.window.close());
   const links = [...dom.window.document.querySelectorAll('nav a')];
   assert.equal(links.length, 6);
-  assert.deepEqual(links.map(a => a.href), [
-    'https://discord.gg/W8Bx8MSH',
+  const [discord, ...profiles] = links;
+  assert.equal(discord.getAttribute('aria-label'), 'Discord');
+  // Invite codes can change; validate the destination instead of pinning a code.
+  assert.match(discord.getAttribute('href'), /^https:\/\/(?:discord\.gg\/|discord\.com\/invite\/)[A-Za-z0-9-]+\/?$/);
+  assert.deepEqual(profiles.map(a => a.href), [
     'https://www.youtube.com/channel/UCVPjxHVPKVtaKiDoOXoiqBg',
     'https://steamcommunity.com/id/TheKfcBandit/',
     'https://open.spotify.com/user/ev7e6bhyilmi51ab40a08puol',
@@ -41,7 +45,6 @@ test('all social destinations are real keyboard-accessible links, including curr
     'https://www.last.fm/user/thekfcbandit',
   ]);
   assert.ok(links.every(a => a.tabIndex === 0));
-  dom.window.close();
 });
 
 test('typing a new query invalidates an older response immediately', async t => {

@@ -5,7 +5,8 @@ Canvas UI Glass Object. The card, glow, floating motion, and pointer tilt share
 one projection; the text and controls remain native HTML so links, keyboard
 navigation, text selection, and Spotify search keep working normally.
 
-- All six social destinations match `main`, including Discord's `W8Bx8MSH` invite.
+- The six social destinations live in `index.html`; update the Discord invite there
+  when it changes. Tests check its format without pinning a particular invite code.
 - Magnetic social hover, cursor glow, press animation, presence, and music remain.
 - Visitors can search Spotify, select with the mouse or arrow keys, and add a song
   to the owner's queue while listening is active. Escape closes the picker.
